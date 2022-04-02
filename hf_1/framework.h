@@ -164,7 +164,8 @@ inline mat4 RotationMatrix(float angle, vec3 w) {
 class Texture {
 //---------------------------
 	std::vector<vec4> load(std::string pathname, bool transparent, int& width, int& height) {
-		FILE * file = fopen(pathname.c_str(), "r");
+		FILE* file;
+		fopen_s(&file, pathname.c_str(), "r");
 		if (!file) {
 			printf("%s does not exist\n", pathname.c_str());
 			width = height = 0;
