@@ -64,40 +64,62 @@ unsigned int vao;	   // virtual world on the GPU
 
 const unsigned int tessellation = 1000;
 
-void initAtom() {
+
+//void initAtom(vec2 center) {
+//	float radius = 0.1f;
+//	float pi = 2*acos(0.0f);
+//
+//	float vertices[tessellation];
+//
+//	for (unsigned int i = 0; i < tessellation; i++) {
+//		vertices[i] = center.x + (radius * cos(i * 2 * pi / tessellation));
+//		vertices[++i] = center.y + (radius * sin(i * 2 * pi / tessellation));
+//	}
+//	//making the second and last vertices the same in order for the circle to be full
+//	vertices[tessellation-2] = vertices[2];
+//	vertices[tessellation-1] = vertices[3];
+//
+//	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+//}
+
+//void drawAtom() {
+//	glBindVertexArray(vao);
+//	glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
+//}
+
+void drawMolecule() {
+	//init
+	vec2 center(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
+		-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX);
+	float radius = 0.1f;
+	float pi = 2 * acos(0.0f);
+
+	float vertices[tessellation];
+
+	for (unsigned int i = 0; i < tessellation; i++) {
+		vertices[i] = center.x + (radius * cos(i * 2 * pi / tessellation));
+		vertices[++i] = center.y + (radius * sin(i * 2 * pi / tessellation));
+	}
+	//making the second and last vertices the same in order for the circle to be full
+	vertices[tessellation - 2] = vertices[2];
+	vertices[tessellation - 1] = vertices[3];
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	//draw
+	glBindVertexArray(vao);
+	glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
+}
+// Initialization, create an OpenGL context
+void onInitialization() {
+	glViewport(0, 0, windowWidth, windowHeight);
+
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
 	unsigned int vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-	vec2 center = {0.0f, 0.0f};
-	float radius = 0.1f;
-	float pi = 2*acos(0.0f);
-
-	float vertices[tessellation];
-
-	vertices[0] = center.x;
-	vertices[1] = center.y;
-	for (unsigned int i = 2; i < tessellation; i++) {
-		vertices[i] = center.x + (radius * cos(i * 2 * pi / tessellation));
-		vertices[++i] = center.y + (radius * sin(i * 2 * pi / tessellation));
-	}
-	vertices[tessellation-2] = vertices[2];
-	vertices[tessellation-1] = vertices[3];
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-}
-
-void drawAtom() {
-	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, tessellation);
-}
-
-// Initialization, create an OpenGL context
-void onInitialization() {
-	glViewport(0, 0, windowWidth, windowHeight);
 
 	/*glGenVertexArrays(1, &vao);	// get 1 vao id
 	glBindVertexArray(vao);		// make it active
@@ -112,7 +134,10 @@ void onInitialization() {
 		vertices,	      	// address
 		GL_STATIC_DRAW);	// we do not change later */
 
-	initAtom();
+	srand(GetTickCount64());
+	/*vec2 center(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
+		-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX);
+	initAtom(center);*/
 
 	glEnableVertexAttribArray(0);  // AttribArray 0
 	glVertexAttribPointer(0,       // vbo -> AttribArray 0
@@ -143,7 +168,9 @@ void onDisplay() {
 	//glBindVertexArray(vao);  // Draw call
 	//glDrawArrays(GL_TRIANGLES, 0 /*startIdx*/, 3 /*# Elements*/);
 
-	drawAtom();
+	//draws random number of atoms btwn 2-8
+	for(int i = 0; i < (2 + (std::rand() % (8 - 2 + 1)));i++)
+		drawMolecule();
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
@@ -151,7 +178,10 @@ void onDisplay() {
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
 	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
-	if (key == ' ') printf("fuck\n");
+	if (key == ' ') {
+		printf("fuck\n");
+		glutPostRedisplay();
+	}
 }
 
 // Key of ASCII code released
@@ -189,4 +219,3 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
 void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
 }
-
