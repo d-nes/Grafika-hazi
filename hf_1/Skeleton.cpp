@@ -66,10 +66,10 @@ const unsigned int tessellation = 1000;
 
 class Atom {
 public:
-	int charge;
+	float charge;
 	vec2 center;
 	Atom() {}
-	Atom(int ch, vec2 c) {
+	Atom(float ch, vec2 c) {
 		charge = ch;
 		center = c;
 	}
@@ -83,6 +83,14 @@ void drawMolecule(Atom* atoms, int n) {
 
 	float vertices[tessellation];
 	for (int a = 0; a < n; a++) {
+		if (atoms[a].charge < 0.0f) {
+			int location = glGetUniformLocation(gpuProgram.getId(), "color");
+			glUniform3f(location, 0.0f, 0.0f, 1.0f);
+		}
+		else {
+			int location = glGetUniformLocation(gpuProgram.getId(), "color");
+			glUniform3f(location, 1.0f, 0.0f, 0.0f);
+		}
 			for (unsigned int i = 0; i < tessellation; i++) {
 				vertices[i] = atoms[a].center.x + (radius * cos(i * 2 * pi / tessellation));
 				vertices[++i] = atoms[a].center.y + (radius * sin(i * 2 * pi / tessellation));
@@ -98,21 +106,23 @@ void drawMolecule(Atom* atoms, int n) {
 		glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
 	}
 
-	//LINES
-	//init
-	float vertices2[16];
-	for (int a = 0; a < n; a++) {
-		for (int i = 0; i < n*2; i++) {
-			vertices2[i] = atoms[a].center.x;
-			vertices2[++i] = atoms[a].center.y;
-		}
+	////LINES
+	////init
+	//int location = glGetUniformLocation(gpuProgram.getId(), "color");
+	//glUniform3f(location, 1.0f, 1.0f, 1.0f);
+	//float vertices2[16];
+	//for (int a = 0; a < n; a++) {
+	//	for (int i = 0; i < n*2; i++) {
+	//		vertices2[i] = atoms[a].center.x;
+	//		vertices2[++i] = atoms[a].center.y;
+	//	}
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+	//	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
 
-		//draw
-		glBindVertexArray(vao);
-		glDrawArrays(GL_LINE_STRIP, 1, n);
-	}
+	//	//draw
+	//	glBindVertexArray(vao);
+	//	glDrawArrays(GL_LINE_STRIP, 1, n);
+	//}
 
 }
 
@@ -122,7 +132,8 @@ public:
 	Atom atoms[8];
 	Molecule() {
 		for (int i = 0; i < n; i++) {
-			atoms[i] = Atom(0, vec2(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
+			atoms[i] = Atom(( - 1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX),
+				vec2(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
 				-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX));
 		}
 		drawMolecule(atoms, n);
