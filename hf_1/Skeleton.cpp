@@ -87,29 +87,71 @@ const unsigned int tessellation = 1000;
 //	glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
 //}
 
-void drawMolecule() {
+class Atom {
+public:
+	int charge;
+	vec2 center;
+	Atom();
+	Atom(int ch, vec2 c) {
+		charge = ch;
+		center = c;
+	}
+};
+
+void drawMolecule(Atom* atoms, int n) {
+	//CIRCLES
 	//init
-	vec2 center(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
-		-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX);
 	float radius = 0.1f;
 	float pi = 2 * acos(0.0f);
 
 	float vertices[tessellation];
+	for (int a = 0; a < n; a++) {
+			for (unsigned int i = 0; i < tessellation; i++) {
+				vertices[i] = atoms[a].center.x + (radius * cos(i * 2 * pi / tessellation));
+				vertices[++i] = atoms[a].center.y + (radius * sin(i * 2 * pi / tessellation));
+			}
+		//making the second and last vertices the same in order for the circle to be full
+		vertices[tessellation - 2] = vertices[2];
+		vertices[tessellation - 1] = vertices[3];
 
-	for (unsigned int i = 0; i < tessellation; i++) {
-		vertices[i] = center.x + (radius * cos(i * 2 * pi / tessellation));
-		vertices[++i] = center.y + (radius * sin(i * 2 * pi / tessellation));
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		//draw
+		glBindVertexArray(vao);
+		glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
 	}
-	//making the second and last vertices the same in order for the circle to be full
-	vertices[tessellation - 2] = vertices[2];
-	vertices[tessellation - 1] = vertices[3];
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	////LINES
+	////init
+	//float vertices2[16];
+	//for (int a = 0; a < n; a++) {
+	//	for (int i = 0; i < n*2; i++) {
+	//		vertices2[i] = atoms[a].center.x;
+	//		vertices2[++i] = atoms[a].center.y;
+	//	}
 
-	//draw
-	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
+	//	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+
+	//	//draw
+	//	glBindVertexArray(vao);
+	//	glDrawArrays(GL_LINE_STRIP, 1, n);
+	//}
+
 }
+
+class Molecule {
+public:
+	int n = 2 + (std::rand() % (8 - 2 + 1)); //number of atoms btwn 2-8
+	Atom atoms[8];
+	Molecule() {
+		for (int i = 0; i < n; i++) {
+			atoms[i] = Atom(0, vec2(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
+				-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX));
+		}
+		drawMolecule(atoms, n);
+	}
+};
+
 // Initialization, create an OpenGL context
 void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
@@ -168,9 +210,8 @@ void onDisplay() {
 	//glBindVertexArray(vao);  // Draw call
 	//glDrawArrays(GL_TRIANGLES, 0 /*startIdx*/, 3 /*# Elements*/);
 
-	//draws random number of atoms btwn 2-8
-	for(int i = 0; i < (2 + (std::rand() % (8 - 2 + 1)));i++)
-		drawMolecule();
+	new Molecule();
+
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
@@ -218,4 +259,8 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
+}
+
+Atom::Atom()
+{
 }
