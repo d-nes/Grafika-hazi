@@ -64,34 +64,11 @@ unsigned int vao;	   // virtual world on the GPU
 
 const unsigned int tessellation = 1000;
 
-
-//void initAtom(vec2 center) {
-//	float radius = 0.1f;
-//	float pi = 2*acos(0.0f);
-//
-//	float vertices[tessellation];
-//
-//	for (unsigned int i = 0; i < tessellation; i++) {
-//		vertices[i] = center.x + (radius * cos(i * 2 * pi / tessellation));
-//		vertices[++i] = center.y + (radius * sin(i * 2 * pi / tessellation));
-//	}
-//	//making the second and last vertices the same in order for the circle to be full
-//	vertices[tessellation-2] = vertices[2];
-//	vertices[tessellation-1] = vertices[3];
-//
-//	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-//}
-
-//void drawAtom() {
-//	glBindVertexArray(vao);
-//	glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
-//}
-
 class Atom {
 public:
 	int charge;
 	vec2 center;
-	Atom();
+	Atom() {}
 	Atom(int ch, vec2 c) {
 		charge = ch;
 		center = c;
@@ -163,24 +140,6 @@ void onInitialization() {
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-	/*glGenVertexArrays(1, &vao);	// get 1 vao id
-	glBindVertexArray(vao);		// make it active
-
-	unsigned int vbo;		// vertex buffer object
-	glGenBuffers(1, &vbo);	// Generate 1 buffer
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	// Geometry with 24 bytes (6 floats or 3 x 2 coordinates)
-	float vertices[] = { -0.8f, -0.8f, -0.6f, 1.0f, 0.8f, -0.2f };
-	glBufferData(GL_ARRAY_BUFFER, 	// Copy to GPU target
-		sizeof(vertices),  // # bytes
-		vertices,	      	// address
-		GL_STATIC_DRAW);	// we do not change later */
-
-	srand(GetTickCount64());
-	/*vec2 center(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
-		-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX);
-	initAtom(center);*/
-
 	glEnableVertexAttribArray(0);  // AttribArray 0
 	glVertexAttribPointer(0,       // vbo -> AttribArray 0
 		2, GL_FLOAT, GL_FALSE, // two floats/attrib, not fixed-point
@@ -207,11 +166,7 @@ void onDisplay() {
 	location = glGetUniformLocation(gpuProgram.getId(), "MVP");	// Get the GPU location of uniform variable MVP
 	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
 
-	//glBindVertexArray(vao);  // Draw call
-	//glDrawArrays(GL_TRIANGLES, 0 /*startIdx*/, 3 /*# Elements*/);
-
 	new Molecule();
-
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
@@ -219,10 +174,7 @@ void onDisplay() {
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
 	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
-	if (key == ' ') {
-		printf("fuck\n");
-		glutPostRedisplay();
-	}
+	if (key == ' ') glutPostRedisplay();
 }
 
 // Key of ASCII code released
@@ -259,8 +211,4 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
-}
-
-Atom::Atom()
-{
 }
