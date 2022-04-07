@@ -121,21 +121,21 @@ void drawMolecule(Atom* atoms, int n) {
 		glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
 	}
 
-	////LINES
-	////init
-	//float vertices2[16];
-	//for (int a = 0; a < n; a++) {
-	//	for (int i = 0; i < n*2; i++) {
-	//		vertices2[i] = atoms[a].center.x;
-	//		vertices2[++i] = atoms[a].center.y;
-	//	}
+	//LINES
+	//init
+	float vertices2[16];
+	for (int a = 0; a < n; a++) {
+		for (int i = 0; i < n*2; i++) {
+			vertices2[i] = atoms[a].center.x;
+			vertices2[++i] = atoms[a].center.y;
+		}
 
-	//	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
 
-	//	//draw
-	//	glBindVertexArray(vao);
-	//	glDrawArrays(GL_LINE_STRIP, 1, n);
-	//}
+		//draw
+		glBindVertexArray(vao);
+		glDrawArrays(GL_LINE_STRIP, 1, n);
+	}
 
 }
 
