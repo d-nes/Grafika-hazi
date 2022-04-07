@@ -76,6 +76,24 @@ public:
 };
 
 void drawMolecule(Atom* atoms, int n) {
+	//LINES
+	//init
+	int location = glGetUniformLocation(gpuProgram.getId(), "color");
+	glUniform3f(location, 1.0f, 1.0f, 1.0f);
+	float vertices2[16];
+	for (int a = 0; a < n; a++) {
+		for (int i = 0; i < n*2; i++) {
+			vertices2[i] = atoms[a].center.x;
+			vertices2[++i] = atoms[a].center.y;
+		}
+
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+
+		//draw
+		glBindVertexArray(vao);
+		glDrawArrays(GL_LINE_STRIP, 1, n);
+	}
+	
 	//CIRCLES
 	//init
 	float radius = 0.1f;
@@ -105,25 +123,6 @@ void drawMolecule(Atom* atoms, int n) {
 		glBindVertexArray(vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
 	}
-
-	////LINES
-	////init
-	//int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	//glUniform3f(location, 1.0f, 1.0f, 1.0f);
-	//float vertices2[16];
-	//for (int a = 0; a < n; a++) {
-	//	for (int i = 0; i < n*2; i++) {
-	//		vertices2[i] = atoms[a].center.x;
-	//		vertices2[++i] = atoms[a].center.y;
-	//	}
-
-	//	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
-
-	//	//draw
-	//	glBindVertexArray(vao);
-	//	glDrawArrays(GL_LINE_STRIP, 1, n);
-	//}
-
 }
 
 class Molecule {
