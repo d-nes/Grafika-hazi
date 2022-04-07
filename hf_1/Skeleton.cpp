@@ -62,11 +62,44 @@ const char * const fragmentSource = R"(
 GPUProgram gpuProgram; // vertex and fragment shaders
 unsigned int vao;	   // virtual world on the GPU
 
+const unsigned int tessellation = 1000;
+
+void initAtom() {
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	unsigned int vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	vec2 center = {0.0f, 0.0f};
+	float radius = 0.1f;
+	float pi = 2*acos(0.0f);
+
+	float vertices[tessellation];
+
+	vertices[0] = center.x;
+	vertices[1] = center.y;
+	for (unsigned int i = 2; i < tessellation; i++) {
+		vertices[i] = center.x + (radius * cos(i * 2 * pi / tessellation));
+		vertices[++i] = center.y + (radius * sin(i * 2 * pi / tessellation));
+	}
+	vertices[tessellation-2] = vertices[2];
+	vertices[tessellation-1] = vertices[3];
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+}
+
+void drawAtom() {
+	glBindVertexArray(vao);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, tessellation);
+}
+
 // Initialization, create an OpenGL context
 void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 
-	glGenVertexArrays(1, &vao);	// get 1 vao id
+	/*glGenVertexArrays(1, &vao);	// get 1 vao id
 	glBindVertexArray(vao);		// make it active
 
 	unsigned int vbo;		// vertex buffer object
@@ -77,7 +110,9 @@ void onInitialization() {
 	glBufferData(GL_ARRAY_BUFFER, 	// Copy to GPU target
 		sizeof(vertices),  // # bytes
 		vertices,	      	// address
-		GL_STATIC_DRAW);	// we do not change later
+		GL_STATIC_DRAW);	// we do not change later */
+
+	initAtom();
 
 	glEnableVertexAttribArray(0);  // AttribArray 0
 	glVertexAttribPointer(0,       // vbo -> AttribArray 0
@@ -95,9 +130,9 @@ void onDisplay() {
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	glUniform3f(location, 0.0f, 1.0f, 0.0f); // 3 floats
+	glUniform3f(location, 1.0f, 0.0f, 0.0f); // 3 floats
 
-	float MVPtransf[4][4] = { 1, 0, 0, 0,    // MVP matrix, 
+	float MVPtransf[4][4] = {1, 0, 0, 0,    // MVP matrix, 
 							  0, 1, 0, 0,    // row-major!
 							  0, 0, 1, 0,
 							  0, 0, 0, 1 };
@@ -105,8 +140,10 @@ void onDisplay() {
 	location = glGetUniformLocation(gpuProgram.getId(), "MVP");	// Get the GPU location of uniform variable MVP
 	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
 
-	glBindVertexArray(vao);  // Draw call
-	glDrawArrays(GL_TRIANGLES, 0 /*startIdx*/, 3 /*# Elements*/);
+	//glBindVertexArray(vao);  // Draw call
+	//glDrawArrays(GL_TRIANGLES, 0 /*startIdx*/, 3 /*# Elements*/);
+
+	drawAtom();
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
@@ -152,3 +189,4 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
 void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
 }
+
