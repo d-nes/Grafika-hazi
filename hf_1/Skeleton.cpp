@@ -162,15 +162,18 @@ Camera2D camera;
 
 float pi = 2 * acos(0.0f);
 
-class Circle {
-	float cx, cy, radius; //sides lol, circle radius
+class Atom {
+	float cx = 1.0f; //circle width
+	float cy = 1.0f; //circle height
+	float radius = 10; //circle radius
+	vec2 wTranslate; //circle postiion
 	int nP = 1000; //number of points
-	vec2 wTranslate; //postiion
+	float charge;
 public:
-	Circle(float x, float y, float r, vec2 pos) {
-		cx = x; cy = y;
-		radius = r;
+	Atom() {};
+	Atom(vec2 pos) {
 		wTranslate = pos;
+		charge = rand() % 20 - 10;
 	}
 	mat4 M() {
 		float phi = 0;
@@ -192,9 +195,6 @@ public:
 		return Mscale * Mrotate * Mtranslate;	// model transformation
 	}
 	void create() {
-		int location = glGetUniformLocation(gpuProgram.getId(), "color");
-		glUniform3f(location, 0.0f, 0.0f, 1.0f);
-
 		glGenVertexArrays(1, &vao);	// create 1 vertex array object
 		glBindVertexArray(vao);		// make it active
 
@@ -215,6 +215,14 @@ public:
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
 	void Draw() {
+		// Set color to (0, 1, 0) = green
+		int location = glGetUniformLocation(gpuProgram.getId(), "color");
+		if(charge < 0)
+			glUniform3f(location, 0.0f, 0.0f, charge * (-1) / 10.0f); // 3 floats
+		else
+			glUniform3f(location, charge / 10.0f, 0.0f, 0.0f); // 3 floats
+
+
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
@@ -224,16 +232,27 @@ public:
 
 class Molecule {
 public:
-	Circle c1 = Circle(1.0f, 1.0f, 10, vec2(-50, -50));
-	Circle c2 = Circle(1.0f, 1.0f, 10, vec2(50, 50));
+	int n = rand() % 8 + 2; //# of atoms
+	Atom atoms[8];
 
+	Molecule() {
+		n = rand() % 8 + 2;
+		for (int i = 0; i < n; i++) {
+			int x = rand() % 100 - 50; //random position
+			int y = rand() % 100 - 50; //random position
+			atoms[i] = Atom(vec2(x, y));
+		}
+	}
 	void init() {
-		c1.create();
-		c2.create();
+		for (int i = 0; i < n; i++) {
+			atoms[i].create();
+		}
 	}
 	void draw() {
-		c1.Draw();
-		c2.Draw();
+		for (int i = 0; i < n; i++) {
+			atoms[i].Draw();
+			printf("drawn circle\n");
+		}
 	}
 };
 
@@ -273,7 +292,7 @@ void onDisplay() {
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	glUniform3f(location, 1.0f, 0.0f, 1.0f); // 3 floats
+	glUniform3f(location, 1.0f, 0.0f, 0.0f); // 3 floats
 
 	//c1.Draw();
 	//c2.Draw();
@@ -296,6 +315,7 @@ void onKeyboard(unsigned char key, int pX, int pY) {
 	//if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
 	if (key == ' ') {
 		printf("spaaace\n");
+		m = Molecule();
 	}
 	switch (key) {
 	case 's': camera.Pan(vec2(-1, 0)); break;
