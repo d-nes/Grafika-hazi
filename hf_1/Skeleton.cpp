@@ -222,7 +222,7 @@ public:
 	}
 };
 
-Circle c1 = Circle(1.0f, 1.0f, 50, vec2(50,-50));
+Circle c1 = Circle(1.0f, 1.0f, 50, vec2(0,0));
 // Initialization, create an OpenGL context
 void onInitialization() {
 	printf("init\n");
@@ -273,7 +273,9 @@ void onDisplay() {
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
 	//if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
-	//if (key == ' ') glutPostRedisplay();
+	if (key == ' ') {
+		printf("spaaace\n");
+	}
 	switch (key) {
 	case 's': camera.Pan(vec2(-1, 0)); break;
 	case 'd': camera.Pan(vec2(+1, 0)); break;
