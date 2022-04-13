@@ -62,6 +62,7 @@ const char * const fragmentSource = R"(
 GPUProgram gpuProgram; // vertex and fragment shaders
 unsigned int vao;	   // virtual world on the GPU
 
+/*
 const unsigned int tessellation = 1000;
 
 class Atom {
@@ -138,6 +139,58 @@ public:
 		drawMolecule(atoms, n);
 	}
 };
+*/
+
+// 2D camera
+class Camera2D {
+	vec2 wCenter; // center in world coordinates
+	vec2 wSize;   // width and height in world coordinates
+public:
+	Camera2D() : wCenter(0, 0), wSize(200, 200) { }
+
+	mat4 V() { return TranslateMatrix(-wCenter); }
+	mat4 P() { return ScaleMatrix(vec2(2 / wSize.x, 2 / wSize.y)); }
+
+	mat4 Vinv() { return TranslateMatrix(wCenter); }
+	mat4 Pinv() { return ScaleMatrix(vec2(wSize.x / 2, wSize.y / 2)); }
+
+	void Zoom(float s) { wSize = wSize * s; }
+	void Pan(vec2 t) { wCenter = wCenter + t; }
+};
+
+Camera2D camera;
+
+float pi = 2 * acos(0.0f);
+
+class Circle {
+	float cx, cy, radius; //center coordinates, circle radius
+	int nP = 1000; //number of points
+public:
+	Circle(float x, float y, float r) {
+		cx = x; cy = y;
+		radius = r;
+	}
+	void create() {
+		glGenVertexArrays(1, &vao);	// create 1 vertex array object
+		glBindVertexArray(vao);		// make it active
+
+		unsigned int vbo;
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+		float vertices[1000];
+		for (unsigned int i = 0; i < nP; i++) {
+			vertices[i] = cx + (radius * cos(i * 2 * pi / nP));
+			vertices[++i] = cy + (radius * sin(i * 2 * pi / nP));
+		}
+
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	}
+};
 
 // Initialization, create an OpenGL context
 void onInitialization() {
@@ -176,7 +229,9 @@ void onDisplay() {
 	location = glGetUniformLocation(gpuProgram.getId(), "MVP");	// Get the GPU location of uniform variable MVP
 	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
 
-	new Molecule();
+	//new Molecule();
+	Circle c1 = new Circle(0.5f, 0.5f, 0.1f);
+	c1.create();
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
