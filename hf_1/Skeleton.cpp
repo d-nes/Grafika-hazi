@@ -163,15 +163,16 @@ Camera2D camera;
 float pi = 2 * acos(0.0f);
 
 class Circle {
-	float cx, cy, radius; //center coordinates, circle radius
+	float cx, cy, radius; //sides lol, circle radius
 	int nP = 1000; //number of points
+	vec2 wTranslate; //postiion
 public:
-	Circle(float x, float y, float r) {
+	Circle(float x, float y, float r, vec2 pos) {
 		cx = x; cy = y;
 		radius = r;
+		wTranslate = pos;
 	}
 	mat4 M() {
-		vec2 wTranslate(0, 0);
 		float phi = 0;
 		mat4 Mscale(cx, 0, 0, 0,
 			0, cy, 0, 0,
@@ -221,7 +222,7 @@ public:
 	}
 };
 
-Circle c1 = Circle(1.0f, 1.0f, 50);
+Circle c1 = Circle(1.0f, 1.0f, 50, vec2(50,-50));
 // Initialization, create an OpenGL context
 void onInitialization() {
 	printf("init\n");
