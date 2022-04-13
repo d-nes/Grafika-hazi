@@ -170,7 +170,30 @@ public:
 		cx = x; cy = y;
 		radius = r;
 	}
+	mat4 M() {
+		vec2 wTranslate(0, 0);
+		float phi = 0;
+		mat4 Mscale(cx, 0, 0, 0,
+			0, cy, 0, 0,
+			0, 0, 0, 0,
+			0, 0, 0, 1); // scaling
+
+		mat4 Mrotate(cosf(phi), sinf(phi), 0, 0,
+			-sinf(phi), cosf(phi), 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1); // rotation
+
+		mat4 Mtranslate(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 0,
+			wTranslate.x, wTranslate.y, 0, 1); // translation
+
+		return Mscale * Mrotate * Mtranslate;	// model transformation
+	}
 	void create() {
+		int location = glGetUniformLocation(gpuProgram.getId(), "color");
+		glUniform3f(location, 0.0f, 0.0f, 1.0f);
+
 		glGenVertexArrays(1, &vao);	// create 1 vertex array object
 		glBindVertexArray(vao);		// make it active
 
@@ -190,10 +213,18 @@ public:
 
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
+	void Draw() {
+		mat4 MVPTransform = M() * camera.V() * camera.P();
+		gpuProgram.setUniform(MVPTransform, "MVP");
+		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
+		glDrawArrays(GL_TRIANGLE_FAN, 0, nP);	
+	}
 };
 
+Circle c1 = Circle(1.0f, 1.0f, 50);
 // Initialization, create an OpenGL context
 void onInitialization() {
+	printf("init\n");
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	glGenVertexArrays(1, &vao);
@@ -208,18 +239,23 @@ void onInitialization() {
 		2, GL_FLOAT, GL_FALSE, // two floats/attrib, not fixed-point
 		0, NULL); 		     // stride, offset: tightly packed
 
+	c1.create();
+
 	// create program for the GPU
 	gpuProgram.create(vertexSource, fragmentSource, "outColor");
-}
 
+}
 // Window has become invalid: Redraw
 void onDisplay() {
+	printf("display\n");
 	glClearColor(0, 0, 0, 0);     // background color
 	glClear(GL_COLOR_BUFFER_BIT); // clear frame buffer
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	glUniform3f(location, 1.0f, 0.0f, 0.0f); // 3 floats
+	glUniform3f(location, 1.0f, 0.0f, 1.0f); // 3 floats
+
+	c1.Draw();
 
 	float MVPtransf[4][4] = {1, 0, 0, 0,    // MVP matrix, 
 							  0, 1, 0, 0,    // row-major!
@@ -228,18 +264,24 @@ void onDisplay() {
 
 	location = glGetUniformLocation(gpuProgram.getId(), "MVP");	// Get the GPU location of uniform variable MVP
 	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
-
-	//new Molecule();
-	Circle c1 = new Circle(0.5f, 0.5f, 0.1f);
-	c1.create();
+	
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
 
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
-	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
-	if (key == ' ') glutPostRedisplay();
+	//if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
+	//if (key == ' ') glutPostRedisplay();
+	switch (key) {
+	case 's': camera.Pan(vec2(-1, 0)); break;
+	case 'd': camera.Pan(vec2(+1, 0)); break;
+	case 'e': camera.Pan(vec2(0, 1)); break;
+	case 'x': camera.Pan(vec2(0, -1)); break;
+	case 'z': camera.Zoom(0.9f); break;
+	case 'Z': camera.Zoom(1.1f); break;
+	}
+	glutPostRedisplay();
 }
 
 // Key of ASCII code released
