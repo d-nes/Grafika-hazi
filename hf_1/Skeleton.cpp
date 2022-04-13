@@ -222,7 +222,24 @@ public:
 	}
 };
 
-Circle c1 = Circle(1.0f, 1.0f, 50, vec2(0,0));
+class Molecule {
+public:
+	Circle c1 = Circle(1.0f, 1.0f, 10, vec2(-50, -50));
+	Circle c2 = Circle(1.0f, 1.0f, 10, vec2(50, 50));
+
+	void init() {
+		c1.create();
+		c2.create();
+	}
+	void draw() {
+		c1.Draw();
+		c2.Draw();
+	}
+};
+
+Molecule m = Molecule();
+
+
 // Initialization, create an OpenGL context
 void onInitialization() {
 	printf("init\n");
@@ -240,7 +257,9 @@ void onInitialization() {
 		2, GL_FLOAT, GL_FALSE, // two floats/attrib, not fixed-point
 		0, NULL); 		     // stride, offset: tightly packed
 
-	c1.create();
+	//c1.create();
+	//c2.create();
+	m.init();
 
 	// create program for the GPU
 	gpuProgram.create(vertexSource, fragmentSource, "outColor");
@@ -256,7 +275,9 @@ void onDisplay() {
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
 	glUniform3f(location, 1.0f, 0.0f, 1.0f); // 3 floats
 
-	c1.Draw();
+	//c1.Draw();
+	//c2.Draw();
+	m.draw();
 
 	float MVPtransf[4][4] = {1, 0, 0, 0,    // MVP matrix, 
 							  0, 1, 0, 0,    // row-major!
