@@ -59,8 +59,8 @@ const char * const fragmentSource = R"(
 	}
 )";
 
+unsigned int vao;
 GPUProgram gpuProgram; // vertex and fragment shaders
-unsigned int vao;	   // virtual world on the GPU
 
 /*
 const unsigned int tessellation = 1000;
@@ -168,6 +168,7 @@ class Atom {
 	float radius = 10; //circle radius
 	vec2 wTranslate; //circle postiion
 	int nP = 1000; //number of points
+	float phi = 0;
 	float charge;
 public:
 	Atom() {};
@@ -176,7 +177,6 @@ public:
 		charge = rand() % 20 - 10;
 	}
 	mat4 M() {
-		float phi = 0;
 		mat4 Mscale(cx, 0, 0, 0,
 			0, cy, 0, 0,
 			0, 0, 0, 0,
@@ -230,25 +230,90 @@ public:
 	}
 };
 
+class Bond {
+	unsigned int vbo;
+	std::vector<vec2> controlPoints;
+	std::vector<float> vertexData;
+	vec2 wTranslate;
+public:
+	mat4 M() { // modeling transform
+		return mat4(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			wTranslate.x, wTranslate.y, 0, 1); // translation
+	}
+	mat4 Minv() { // inverse modeling transform
+		return mat4(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			-wTranslate.x, -wTranslate.y, 0, 1); // inverse translation
+	}
+	void create() {
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
+	}
+	void Draw() {
+		int location = glGetUniformLocation(gpuProgram.getId(), "color");
+		glUniform3f(location, 1.0f, 1.0f, 1.0f);
+
+		if (vertexData.size() > 0) {
+			mat4 MVPTransform = M() * camera.V() * camera.P();
+			gpuProgram.setUniform(MVPTransform, "MVP");
+			glBindVertexArray(vao);
+			glDrawArrays(GL_LINE_STRIP, 0, vertexData.size() / 5);
+		}
+	}
+	void AddPoint(float x, float y) {
+		vec4 mVertex = vec4(x, y, 0, 1) * camera.Pinv() * camera.Vinv() * Minv();
+		controlPoints.push_back(vec2(mVertex.x, mVertex.y));
+
+		vertexData.push_back(mVertex.x);
+		vertexData.push_back(mVertex.y);
+		vertexData.push_back(1); // red
+		vertexData.push_back(1); // green
+		vertexData.push_back(1); // blue
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), &vertexData[0], GL_DYNAMIC_DRAW);
+	}
+};
+
+
 class Molecule {
 public:
 	int n = rand() % 8 + 2; //# of atoms
 	Atom atoms[8];
+	Bond b;
 
 	Molecule() {
+		b = Bond();
+		//b.create();
+
 		n = rand() % 8 + 2;
 		for (int i = 0; i < n; i++) {
 			int x = rand() % 100 - 50; //random position
 			int y = rand() % 100 - 50; //random position
 			atoms[i] = Atom(vec2(x, y));
+			//b.AddPoint(x, y); //coordinates for lines
 		}
 	}
 	void init() {
+		b.create();
 		for (int i = 0; i < n; i++) {
 			atoms[i].create();
 		}
 	}
 	void draw() {
+		b.Draw();
 		for (int i = 0; i < n; i++) {
 			atoms[i].Draw();
 			printf("drawn circle\n");
@@ -257,7 +322,6 @@ public:
 };
 
 Molecule m = Molecule();
-
 
 // Initialization, create an OpenGL context
 void onInitialization() {
@@ -276,8 +340,6 @@ void onInitialization() {
 		2, GL_FLOAT, GL_FALSE, // two floats/attrib, not fixed-point
 		0, NULL); 		     // stride, offset: tightly packed
 
-	//c1.create();
-	//c2.create();
 	m.init();
 
 	// create program for the GPU
@@ -287,15 +349,13 @@ void onInitialization() {
 // Window has become invalid: Redraw
 void onDisplay() {
 	printf("display\n");
-	glClearColor(0, 0, 0, 0);     // background color
+	glClearColor(0.5f, 0.5f, 0.5f, 0);     // background color
 	glClear(GL_COLOR_BUFFER_BIT); // clear frame buffer
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
 	glUniform3f(location, 1.0f, 0.0f, 0.0f); // 3 floats
 
-	//c1.Draw();
-	//c2.Draw();
 	m.draw();
 
 	float MVPtransf[4][4] = {1, 0, 0, 0,    // MVP matrix, 
@@ -361,5 +421,5 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
 
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
-	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
+	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program;
 }
