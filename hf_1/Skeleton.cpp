@@ -230,6 +230,7 @@ public:
 	}
 };
 
+/*
 class Bond {
 	unsigned int vbo;
 	std::vector<vec2> controlPoints;
@@ -286,24 +287,78 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), &vertexData[0], GL_DYNAMIC_DRAW);
 	}
 };
+*/
 
+
+class Bond {
+	float vertices[16]; //coordinates for the ends of lines: 16 being max, because of the max of 8 atoms
+	int points = 0; //# of points to be connected by lines
+	vec2 wTranslate;
+	float phi = 0;
+	float cx = 1.0f;
+	float cy = 1.0f;
+public:
+	void create() {
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		unsigned int vbo;
+		glGenBuffers(1, &vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	}
+	mat4 M() {
+		mat4 Mscale(cx, 0, 0, 0,
+			0, cy, 0, 0,
+			0, 0, 0, 0,
+			0, 0, 0, 1); // scaling
+
+		mat4 Mrotate(cosf(phi), sinf(phi), 0, 0,
+			-sinf(phi), cosf(phi), 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1); // rotation
+
+		mat4 Mtranslate(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 0,
+			wTranslate.x, wTranslate.y, 0, 1); // translation
+
+		return Mscale * Mrotate * Mtranslate;	// model transformation
+	}
+	void draw() {
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		glEnableVertexAttribArray(0);
+		//glEnableVertexAttribArray(1);
+
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+		int location = glGetUniformLocation(gpuProgram.getId(), "color");
+		glUniform3f(location, 1.0f, 1.0f, 1.0f);
+
+		mat4 MVPTransform = M() * camera.V() * camera.P();
+		gpuProgram.setUniform(MVPTransform, "MVP");
+		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
+		glDrawArrays(GL_LINE_STRIP, 0, 2 * points);
+	}
+	void addPoint(float x, float y) {
+		vertices[points] = x;
+		vertices[++points] = y; //increases 'int points' by one
+	}
+};
 
 class Molecule {
 public:
 	int n = rand() % 8 + 2; //# of atoms
 	Atom atoms[8];
-	Bond b;
+	Bond b = Bond();
 
 	Molecule() {
-		b = Bond();
-		//b.create();
-
 		n = rand() % 8 + 2;
 		for (int i = 0; i < n; i++) {
 			int x = rand() % 100 - 50; //random position
 			int y = rand() % 100 - 50; //random position
 			atoms[i] = Atom(vec2(x, y));
-			//b.AddPoint(x, y); //coordinates for lines
+			b.addPoint(x, y); //coordinates for lines
 		}
 	}
 	void init() {
@@ -313,7 +368,7 @@ public:
 		}
 	}
 	void draw() {
-		b.Draw();
+		b.draw();
 		for (int i = 0; i < n; i++) {
 			atoms[i].Draw();
 			printf("drawn circle\n");
