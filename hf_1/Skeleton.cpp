@@ -62,86 +62,7 @@ const char * const fragmentSource = R"(
 unsigned int vao;
 GPUProgram gpuProgram; // vertex and fragment shaders
 
-/*
-const unsigned int tessellation = 1000;
-
-class Atom {
-public:
-	float charge;
-	vec2 center;
-	Atom() {}
-	Atom(float ch, vec2 c) {
-		charge = ch;
-		center = c;
-	}
-};
-
-void drawMolecule(Atom* atoms, int n) {
-	//LINES
-	//init
-	int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	glUniform3f(location, 1.0f, 1.0f, 1.0f);
-	float vertices2[16];
-	for (int a = 0; a < n; a++) {
-		for (int i = 0; i < n*2; i++) {
-			vertices2[i] = atoms[a].center.x;
-			vertices2[++i] = atoms[a].center.y;
-		}
-
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
-
-		//draw
-		glBindVertexArray(vao);
-		glDrawArrays(GL_LINE_STRIP, 1, n);
-	}
-	
-	//CIRCLES
-	//init
-	float radius = 0.1f;
-	float pi = 2 * acos(0.0f);
-
-	float vertices[tessellation];
-	for (int a = 0; a < n; a++) {
-		if (atoms[a].charge < 0.0f) {
-			int location = glGetUniformLocation(gpuProgram.getId(), "color");
-			glUniform3f(location, 0.0f, 0.0f, 1.0f);
-		}
-		else {
-			int location = glGetUniformLocation(gpuProgram.getId(), "color");
-			glUniform3f(location, 1.0f, 0.0f, 0.0f);
-		}
-			for (unsigned int i = 0; i < tessellation; i++) {
-				vertices[i] = atoms[a].center.x + (radius * cos(i * 2 * pi / tessellation));
-				vertices[++i] = atoms[a].center.y + (radius * sin(i * 2 * pi / tessellation));
-			}
-		//making the second and last vertices the same in order for the circle to be full
-		vertices[tessellation - 2] = vertices[2];
-		vertices[tessellation - 1] = vertices[3];
-
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-		//draw
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLE_FAN, 1, tessellation);
-	}
-}
-
-class Molecule {
-public:
-	int n = 2 + (std::rand() % (8 - 2 + 1)); //number of atoms btwn 2-8
-	Atom atoms[8];
-	Molecule() {
-		for (int i = 0; i < n; i++) {
-			atoms[i] = Atom(( - 1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX),
-				vec2(-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX,
-				-1.0f + static_cast<float>(rand()) * static_cast<float>(1.0f - -1.0f) / RAND_MAX));
-		}
-		drawMolecule(atoms, n);
-	}
-};
-*/
-
-// 2D camera
+// 2D camera //Source: smoothtrianlge.cpp available at online.vik.bme.hu
 class Camera2D {
 	vec2 wCenter; // center in world coordinates
 	vec2 wSize;   // width and height in world coordinates
@@ -166,16 +87,19 @@ class Atom {
 	float cx = 1.0f; //circle width
 	float cy = 1.0f; //circle height
 	float radius = 10; //circle radius
-	vec2 wTranslate; //circle postiion
+	vec2 wTranslate; 
 	int nP = 1000; //number of points
 	float phi = 0;
 	float charge;
+	float vertices[1000];
 public:
 	Atom() {};
 	Atom(vec2 pos) {
 		wTranslate = pos;
 		charge = rand() % 20 - 10;
+		//vertices[0] = x; vertices[1] = y; //setting center coordinate
 	}
+	//Source: smoothtrianlge.cpp available at online.vik.bme.hu
 	mat4 M() {
 		mat4 Mscale(cx, 0, 0, 0,
 			0, cy, 0, 0,
@@ -202,13 +126,13 @@ public:
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-		float vertices[1000];
+		//calculates points around the center coordinate
 		for (unsigned int i = 0; i < nP; i++) {
 			vertices[i] = cx + (radius * cos(i * 2 * pi / nP));
 			vertices[++i] = cy + (radius * sin(i * 2 * pi / nP));
 		}
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
 		glEnableVertexAttribArray(0);
 
@@ -226,68 +150,9 @@ public:
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLE_FAN, 0, nP);	
+		glDrawArrays(GL_TRIANGLE_FAN, 1, nP);	
 	}
 };
-
-/*
-class Bond {
-	unsigned int vbo;
-	std::vector<vec2> controlPoints;
-	std::vector<float> vertexData;
-	vec2 wTranslate;
-public:
-	mat4 M() { // modeling transform
-		return mat4(1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			wTranslate.x, wTranslate.y, 0, 1); // translation
-	}
-	mat4 Minv() { // inverse modeling transform
-		return mat4(1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			-wTranslate.x, -wTranslate.y, 0, 1); // inverse translation
-	}
-	void create() {
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-
-		glGenBuffers(1, &vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
-	}
-	void Draw() {
-		int location = glGetUniformLocation(gpuProgram.getId(), "color");
-		glUniform3f(location, 1.0f, 1.0f, 1.0f);
-
-		if (vertexData.size() > 0) {
-			mat4 MVPTransform = M() * camera.V() * camera.P();
-			gpuProgram.setUniform(MVPTransform, "MVP");
-			glBindVertexArray(vao);
-			glDrawArrays(GL_LINE_STRIP, 0, vertexData.size() / 5);
-		}
-	}
-	void AddPoint(float x, float y) {
-		vec4 mVertex = vec4(x, y, 0, 1) * camera.Pinv() * camera.Vinv() * Minv();
-		controlPoints.push_back(vec2(mVertex.x, mVertex.y));
-
-		vertexData.push_back(mVertex.x);
-		vertexData.push_back(mVertex.y);
-		vertexData.push_back(1); // red
-		vertexData.push_back(1); // green
-		vertexData.push_back(1); // blue
-
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), &vertexData[0], GL_DYNAMIC_DRAW);
-	}
-};
-*/
 
 
 class Bond {
@@ -306,6 +171,7 @@ public:
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	}
+	//Source: smoothtrianlge.cpp available at online.vik.bme.hu
 	mat4 M() {
 		mat4 Mscale(cx, 0, 0, 0,
 			0, cy, 0, 0,
@@ -338,7 +204,7 @@ public:
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_LINE_STRIP, 0, 2 * points);
+		glDrawArrays(GL_LINE_STRIP, 0, 2*points);
 	}
 	void addPoint(float x, float y) {
 		vertices[points] = x;
@@ -350,29 +216,29 @@ class Molecule {
 public:
 	int n = rand() % 8 + 2; //# of atoms
 	Atom atoms[8];
-	Bond b = Bond();
+	//Bond b = Bond();
 
 	Molecule() {
 		n = rand() % 8 + 2;
 		for (int i = 0; i < n; i++) {
 			int x = rand() % 100 - 50; //random position
 			int y = rand() % 100 - 50; //random position
-			atoms[i] = Atom(vec2(x, y));
-			b.addPoint(x, y); //coordinates for lines
+			atoms[i] = Atom(vec2(x,y));
+			printf("new Atom at: ");  printf("%.0d ", x); printf("%.0d\n", y);
+			//b.addPoint(x, y); //coordinates for lines
 		}
 	}
 	void init() {
-		b.create();
+		//b.create();
 		for (int i = 0; i < n; i++) {
 			atoms[i].create();
 		}
 	}
 	void draw() {
-		b.draw();
 		for (int i = 0; i < n; i++) {
 			atoms[i].Draw();
-			printf("drawn circle\n");
 		}
+		//b.draw();
 	}
 };
 
@@ -409,7 +275,7 @@ void onDisplay() {
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
-	glUniform3f(location, 1.0f, 0.0f, 0.0f); // 3 floats
+	glUniform3f(location, 0.0f, 1.0f, 0.0f); // 3 floats
 
 	m.draw();
 
