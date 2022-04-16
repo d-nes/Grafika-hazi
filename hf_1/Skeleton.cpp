@@ -195,6 +195,8 @@ public:
 		int location = glGetUniformLocation(gpuProgram.getId(), "color");
 		glUniform3f(location, 1.0f, 1.0f, 1.0f);
 
+		glLineWidth(5.0f);
+
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
