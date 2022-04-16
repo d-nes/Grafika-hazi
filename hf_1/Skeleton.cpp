@@ -98,7 +98,7 @@ public:
 	Atom(vec2 pos) {
 		wTranslate = pos;
 		charge = rand() % 20 - 10;
-		//vertices[0] = x; vertices[1] = y; //setting center coordinate
+		printf("\tnew Atom at: %.0f %.0f (charge: %.0f)\n", pos.x, pos.y, charge);
 	}
 	//Source: smoothtrianlge.cpp available at online.vik.bme.hu
 	mat4 M() {
@@ -185,15 +185,10 @@ public:
 
 		return Mscale * Mrotate * Mtranslate;	// model transformation
 	}
-	void draw() {
-		printf("Bond endpoints (%d):\n", points/2);
-		for (int i = 0; i < points; i+=2) {
-			printf("\tnew endpoint at: %.0f %.0f\n", vertices[i], vertices[i+1]);
-		}
-		
+	void draw() {		
 		glBufferData(GL_ARRAY_BUFFER, 2*points*sizeof(float), vertices, GL_STATIC_DRAW);
 
-		glEnableVertexAttribArray(0);
+		//glEnableVertexAttribArray(0);
 
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
@@ -206,6 +201,7 @@ public:
 		glDrawArrays(GL_LINE_STRIP, 0, points+1);
 	}
 	void addPoint(float x, float y) {
+		printf("\tnew Bond endpoint at: %.0f %.0f\n", x, y);
 		vertices[points] = x;
 		vertices[++points] = y; //increases 'int points' by one
 		points++;
@@ -226,7 +222,6 @@ public:
 			int x = rand() % 100 - 50; //random position
 			int y = rand() % 100 - 50; //random position
 			atoms[i] = Atom(vec2(x,y));
-			printf("\tnew Atom at: %.0d %.0d\n", x, y);
 			b.addPoint(x, y); //coordinates for lines
 		}
 		for (int i = 0; i < n; i++) {
@@ -246,6 +241,7 @@ Molecule m = Molecule();
 // Initialization, create an OpenGL context
 void onInitialization() {
 	printf("onInitialization()\n");
+
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	glGenVertexArrays(1, &vao);
@@ -262,8 +258,9 @@ void onInitialization() {
 // Window has become invalid: Redraw
 void onDisplay() {
 	printf("onDisplay()\n");
-	glClearColor(0.5f, 0.5f, 0.5f, 0);     // background color
-	glClear(GL_COLOR_BUFFER_BIT); // clear frame buffer
+
+	glClearColor(0.5f, 0.5f, 0.5f, 0); //background color
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Set color to (0, 1, 0) = green
 	int location = glGetUniformLocation(gpuProgram.getId(), "color");
@@ -271,6 +268,7 @@ void onDisplay() {
 
 	m.draw();
 
+	/*
 	float MVPtransf[4][4] = {1, 0, 0, 0,    // MVP matrix, 
 							  0, 1, 0, 0,    // row-major!
 							  0, 0, 1, 0,
@@ -278,7 +276,7 @@ void onDisplay() {
 
 	location = glGetUniformLocation(gpuProgram.getId(), "MVP");	// Get the GPU location of uniform variable MVP
 	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
-	
+	*/
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
@@ -306,35 +304,10 @@ void onKeyboardUp(unsigned char key, int pX, int pY) {}
 
 
 // Move mouse with key pressed
-void onMouseMotion(int pX, int pY) {	// pX, pY are the pixel coordinates of the cursor in the coordinate system of the operation system
-	/*
-	// Convert to normalized device space
-	float cX = 2.0f * pX / windowWidth - 1;	// flip y axis
-	float cY = 1.0f - 2.0f * pY / windowHeight;
-	printf("Mouse moved to (%3.2f, %3.2f)\n", cX, cY);
-	*/
-}
+void onMouseMotion(int pX, int pY) {}
 
 // Mouse click event
-void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel coordinates of the cursor in the coordinate system of the operation system
-	/*
-	// Convert to normalized device space
-	float cX = 2.0f * pX / windowWidth - 1;	// flip y axis
-	float cY = 1.0f - 2.0f * pY / windowHeight;
-
-	const char * buttonStat = NULL;
-	switch (state) {
-	case GLUT_DOWN: buttonStat = "pressed"; break;
-	case GLUT_UP:   buttonStat = "released"; break;
-	}
-
-	switch (button) {
-	case GLUT_LEFT_BUTTON:   printf("Left button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY);   break;
-	case GLUT_MIDDLE_BUTTON: printf("Middle button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY); break;
-	case GLUT_RIGHT_BUTTON:  printf("Right button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY);  break;
-	}
-	*/
-}
+void onMouse(int button, int state, int pX, int pY) {}
 
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
