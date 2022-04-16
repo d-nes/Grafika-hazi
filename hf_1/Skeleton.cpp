@@ -60,6 +60,7 @@ const char * const fragmentSource = R"(
 )";
 
 unsigned int vao;
+unsigned int vbo;
 GPUProgram gpuProgram; // vertex and fragment shaders
 
 // 2D camera //Source: smoothtrianlge.cpp available at online.vik.bme.hu
@@ -119,12 +120,12 @@ public:
 		return Mscale * Mrotate * Mtranslate;	// model transformation
 	}
 	void create() {
-		glGenVertexArrays(1, &vao);	// create 1 vertex array object
-		glBindVertexArray(vao);		// make it active
+		//glGenVertexArrays(1, &vao);	// create 1 vertex array object
+		//glBindVertexArray(vao);		// make it active
 
-		unsigned int vbo;
+		/*unsigned int vbo;
 		glGenBuffers(1, &vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);*/
 
 		//calculates points around the center coordinate
 		for (unsigned int i = 0; i < nP; i++) {
@@ -146,7 +147,6 @@ public:
 		else
 			glUniform3f(location, charge / 10.0f, 0.0f, 0.0f); // 3 floats
 
-
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
@@ -156,20 +156,15 @@ public:
 
 
 class Bond {
-	float vertices[16]; //coordinates for the ends of lines: 16 being max, because of the max of 8 atoms
+	float vertices[16] = {}; //coordinates for the ends of lines: 16 being max, because of the max of 8 atoms
 	int points = 0; //# of points to be connected by lines
 	vec2 wTranslate;
 	float phi = 0;
 	float cx = 1.0f;
 	float cy = 1.0f;
 public:
-	void create() {
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-
-		unsigned int vbo;
-		glGenBuffers(1, &vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	Bond() {
+		points = 0;
 	}
 	//Source: smoothtrianlge.cpp available at online.vik.bme.hu
 	mat4 M() {
@@ -191,10 +186,14 @@ public:
 		return Mscale * Mrotate * Mtranslate;	// model transformation
 	}
 	void draw() {
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		printf("Bond endpoints (%d):\n", points/2);
+		for (int i = 0; i < points; i+=2) {
+			printf("\tnew endpoint at: %.0f %.0f\n", vertices[i], vertices[i+1]);
+		}
+		
+		glBufferData(GL_ARRAY_BUFFER, 2*points*sizeof(float), vertices, GL_STATIC_DRAW);
 
 		glEnableVertexAttribArray(0);
-		//glEnableVertexAttribArray(1);
 
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
@@ -204,11 +203,12 @@ public:
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_LINE_STRIP, 0, 2*points);
+		glDrawArrays(GL_LINE_STRIP, 0, points+1);
 	}
 	void addPoint(float x, float y) {
 		vertices[points] = x;
 		vertices[++points] = y; //increases 'int points' by one
+		points++;
 	}
 };
 
@@ -216,20 +216,19 @@ class Molecule {
 public:
 	int n = rand() % 8 + 2; //# of atoms
 	Atom atoms[8];
-	//Bond b = Bond();
+	Bond b; 
 
-	Molecule() {
+	void init() {
+		b = Bond();
 		n = rand() % 8 + 2;
+		printf("Atoms (%d):\n", n);
 		for (int i = 0; i < n; i++) {
 			int x = rand() % 100 - 50; //random position
 			int y = rand() % 100 - 50; //random position
 			atoms[i] = Atom(vec2(x,y));
-			printf("new Atom at: ");  printf("%.0d ", x); printf("%.0d\n", y);
-			//b.addPoint(x, y); //coordinates for lines
+			printf("\tnew Atom at: %.0d %.0d\n", x, y);
+			b.addPoint(x, y); //coordinates for lines
 		}
-	}
-	void init() {
-		//b.create();
 		for (int i = 0; i < n; i++) {
 			atoms[i].create();
 		}
@@ -238,7 +237,7 @@ public:
 		for (int i = 0; i < n; i++) {
 			atoms[i].Draw();
 		}
-		//b.draw();
+		b.draw();
 	}
 };
 
@@ -246,30 +245,23 @@ Molecule m = Molecule();
 
 // Initialization, create an OpenGL context
 void onInitialization() {
-	printf("init\n");
+	printf("onInitialization()\n");
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	unsigned int vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-	glEnableVertexAttribArray(0);  // AttribArray 0
-	glVertexAttribPointer(0,       // vbo -> AttribArray 0
-		2, GL_FLOAT, GL_FALSE, // two floats/attrib, not fixed-point
-		0, NULL); 		     // stride, offset: tightly packed
-
-	m.init();
-
 	// create program for the GPU
 	gpuProgram.create(vertexSource, fragmentSource, "outColor");
-
+	
+	m.init();
 }
 // Window has become invalid: Redraw
 void onDisplay() {
-	printf("display\n");
+	printf("onDisplay()\n");
 	glClearColor(0.5f, 0.5f, 0.5f, 0);     // background color
 	glClear(GL_COLOR_BUFFER_BIT); // clear frame buffer
 
@@ -295,8 +287,8 @@ void onDisplay() {
 void onKeyboard(unsigned char key, int pX, int pY) {
 	//if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
 	if (key == ' ') {
-		printf("spaaace\n");
-		m = Molecule();
+		printf("\nSpace pressed\n");
+		m.init();
 	}
 	switch (key) {
 	case 's': camera.Pan(vec2(-1, 0)); break;
@@ -310,19 +302,22 @@ void onKeyboard(unsigned char key, int pX, int pY) {
 }
 
 // Key of ASCII code released
-void onKeyboardUp(unsigned char key, int pX, int pY) {
-}
+void onKeyboardUp(unsigned char key, int pX, int pY) {}
+
 
 // Move mouse with key pressed
 void onMouseMotion(int pX, int pY) {	// pX, pY are the pixel coordinates of the cursor in the coordinate system of the operation system
+	/*
 	// Convert to normalized device space
 	float cX = 2.0f * pX / windowWidth - 1;	// flip y axis
 	float cY = 1.0f - 2.0f * pY / windowHeight;
 	printf("Mouse moved to (%3.2f, %3.2f)\n", cX, cY);
+	*/
 }
 
 // Mouse click event
 void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel coordinates of the cursor in the coordinate system of the operation system
+	/*
 	// Convert to normalized device space
 	float cX = 2.0f * pX / windowWidth - 1;	// flip y axis
 	float cY = 1.0f - 2.0f * pY / windowHeight;
@@ -338,6 +333,7 @@ void onMouse(int button, int state, int pX, int pY) { // pX, pY are the pixel co
 	case GLUT_MIDDLE_BUTTON: printf("Middle button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY); break;
 	case GLUT_RIGHT_BUTTON:  printf("Right button %s at (%3.2f, %3.2f)\n", buttonStat, cX, cY);  break;
 	}
+	*/
 }
 
 // Idle event indicating that some time elapsed: do animation here
