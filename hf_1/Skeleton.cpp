@@ -119,41 +119,31 @@ public:
 
 		return Mscale * Mrotate * Mtranslate;	// model transformation
 	}
+	//calculates points around the center coordinate
 	void create() {
-		//glGenVertexArrays(1, &vao);	// create 1 vertex array object
-		//glBindVertexArray(vao);		// make it active
-
-		/*unsigned int vbo;
-		glGenBuffers(1, &vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);*/
-
-		//calculates points around the center coordinate
 		for (unsigned int i = 0; i < nP; i++) {
-			vertices[i] = cx + (radius * cos(i * 2 * pi / nP));
-			vertices[++i] = cy + (radius * sin(i * 2 * pi / nP));
+			vertices[i] = cx + (radius * cos(i * 2.0f * pi / (float)nP));
+			vertices[++i] = cy + (radius * sin(i * 2.0f * pi / (float)nP));
 		}
-
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-
-		glEnableVertexAttribArray(0);
-
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
 	void Draw() {
-		// Set color to (0, 1, 0) = green
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+		// Set color depending on charge
 		int location = glGetUniformLocation(gpuProgram.getId(), "color");
 		if(charge < 0)
 			glUniform3f(location, 0.0f, 0.0f, charge * (-1) / 10.0f); // 3 floats
 		else
 			glUniform3f(location, charge / 10.0f, 0.0f, 0.0f); // 3 floats
 
-		mat4 MVPTransform = M() * camera.V() * camera.P();
+		mat4 MVPTransform = M() *camera.V()* camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLE_FAN, 1, nP);	
+		glDrawArrays(GL_TRIANGLE_FAN, 0, nP);	
 	}
 };
-
 
 class Bond {
 	float vertices[16] = {}; //coordinates for the ends of lines: 16 being max, because of the max of 8 atoms
@@ -186,10 +176,8 @@ public:
 		return Mscale * Mrotate * Mtranslate;	// model transformation
 	}
 	void draw() {		
-		glBufferData(GL_ARRAY_BUFFER, 2*points*sizeof(float), vertices, GL_STATIC_DRAW);
-
-		//glEnableVertexAttribArray(0);
-
+		glBufferData(GL_ARRAY_BUFFER, points*sizeof(float), vertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
 		int location = glGetUniformLocation(gpuProgram.getId(), "color");
@@ -200,7 +188,7 @@ public:
 		mat4 MVPTransform = M() * camera.V() * camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_LINE_STRIP, 0, points+1);
+		glDrawArrays(GL_LINE_STRIP, 0, points/2);
 	}
 	void addPoint(float x, float y) {
 		printf("\tnew Bond endpoint at: %.0f %.0f\n", x, y);
@@ -231,10 +219,10 @@ public:
 		}
 	}
 	void draw() {
+		b.draw();
 		for (int i = 0; i < n; i++) {
 			atoms[i].Draw();
 		}
-		b.draw();
 	}
 };
 
@@ -269,16 +257,6 @@ void onDisplay() {
 	glUniform3f(location, 0.0f, 1.0f, 0.0f); // 3 floats
 
 	m.draw();
-
-	/*
-	float MVPtransf[4][4] = {1, 0, 0, 0,    // MVP matrix, 
-							  0, 1, 0, 0,    // row-major!
-							  0, 0, 1, 0,
-							  0, 0, 0, 1 };
-
-	location = glGetUniformLocation(gpuProgram.getId(), "MVP");	// Get the GPU location of uniform variable MVP
-	glUniformMatrix4fv(location, 1, GL_TRUE, &MVPtransf[0][0]);	// Load a 4x4 row-major float matrix to the specified location
-	*/
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
