@@ -42,6 +42,16 @@ const char * const vertexSource = R"(
 	layout(location = 0) in vec2 vp;	// Varying input: vp = vertex position is expected in attrib array 0
 
 	void main() {
+		//Beltrami coordinates
+		//float bX = tanh(vp.x);
+		//float bY = tanh(vp.y);
+
+		//Poincare coordinates
+		//float w = sqrt(1 - pow(bX, 2) - pow(bY, 2));
+		//float pX = bX / (w + 1);
+		//float pY = bY / (w + 1);
+
+		//gl_Position = vec4(pX, pY, 0, 1) * MVP;
 		gl_Position = vec4(vp.x, vp.y, 0, 1) * MVP;		// transform vp from modeling space to normalized device space
 	}
 )";
@@ -96,7 +106,9 @@ class Atom {
 public:
 	Atom() {};
 	Atom(vec2 pos) {
-		wTranslate = pos;
+		//wTranslate = pos;
+		vertices[0] = pos.x;
+		vertices[1] = pos.y;
 		charge = rand() % 20 - 10;
 		printf("\tnew Atom at: %.0f %.0f (charge: %.0f)\n", pos.x, pos.y, charge);
 	}
@@ -121,9 +133,10 @@ public:
 	}
 	//calculates points around the center coordinate
 	void create() {
-		for (unsigned int i = 0; i < nP; i++) {
-			vertices[i] = cx + (radius * cos(i * 2.0f * pi / (float)nP));
-			vertices[++i] = cy + (radius * sin(i * 2.0f * pi / (float)nP));
+		for (unsigned int i = 2; i < nP; i++) {
+			vertices[i] = vertices[0] + (radius * (cos(((i - 2) / 2) * 2.0f * pi / (nP / 2 - 2))));
+			i++;
+			vertices[i] = vertices[1] + (radius * (sin(((i - 3) / 2) * 2.0f * pi / (nP / 2 - 2))));
 		}
 	}
 	void Draw() {
@@ -141,7 +154,7 @@ public:
 		mat4 MVPTransform = M() *camera.V()* camera.P();
 		gpuProgram.setUniform(MVPTransform, "MVP");
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLE_FAN, 0, nP);	
+		glDrawArrays(GL_TRIANGLE_FAN, 0, nP/2);
 	}
 };
 
