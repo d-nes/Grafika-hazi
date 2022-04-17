@@ -42,17 +42,12 @@ const char * const vertexSource = R"(
 	layout(location = 0) in vec2 vp;	// Varying input: vp = vertex position is expected in attrib array 0
 
 	void main() {
-		//Beltrami coordinates
-		//float bX = tanh(vp.x);
-		//float bY = tanh(vp.y);
+		float w = sqrt(pow(vp.x, 2) + pow(vp.y, 2) + 1) + 20;
+		float pX = vp.x / (w + 1);
+		float pY = vp.y / (w + 1);	
 
-		//Poincare coordinates
-		//float w = sqrt(1 - pow(bX, 2) - pow(bY, 2));
-		//float pX = bX / (w + 1);
-		//float pY = bY / (w + 1);
-
-		//gl_Position = vec4(pX, pY, 0, 1) * MVP;
-		gl_Position = vec4(vp.x, vp.y, 0, 1) * MVP;		// transform vp from modeling space to normalized device space
+		gl_Position = vec4(pX, pY, w, 1) * MVP;
+		//gl_Position = vec4(vp.x, vp.y, 0, 1) * MVP;		// transform vp from modeling space to normalized device space
 	}
 )";
 
@@ -78,7 +73,7 @@ class Camera2D {
 	vec2 wCenter; // center in world coordinates
 	vec2 wSize;   // width and height in world coordinates
 public:
-	Camera2D() : wCenter(0, 0), wSize(200, 200) { }
+	Camera2D() : wCenter(0, 0), wSize(2, 2) { }
 
 	mat4 V() { return TranslateMatrix(-wCenter); }
 	mat4 P() { return ScaleMatrix(vec2(2 / wSize.x, 2 / wSize.y)); }
