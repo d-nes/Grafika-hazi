@@ -47,7 +47,7 @@ const char * const vertexSource = R"(
 		float pY = vp.y / (w + 1);	
 
 		gl_Position = vec4(pX, pY, w, 1) * MVP;
-		//gl_Position = vec4(vp.x, vp.y, 0, 1) * MVP;		// transform vp from modeling space to normalized device space
+		//gl_Position = vec4(vp.x, vp.y, 0, 1) * MVP;
 	}
 )";
 
@@ -92,7 +92,7 @@ float pi = 2 * acos(0.0f);
 class Atom {
 	float cx = 1.0f; //circle width
 	float cy = 1.0f; //circle height
-	float radius = 10; //circle radius
+	float radius = 5; //circle radius
 	vec2 wTranslate; 
 	int nP = 1000; //number of points
 	float phi = 0;
@@ -106,6 +106,9 @@ public:
 		vertices[1] = pos.y;
 		charge = rand() % 20 - 10;
 		printf("\tnew Atom at: %.0f %.0f (charge: %.0f)\n", pos.x, pos.y, charge);
+	}
+	void rotate(float angle) {
+		phi += angle;
 	}
 	//Source: smoothtrianlge.cpp available at online.vik.bme.hu
 	mat4 M() {
@@ -154,7 +157,7 @@ public:
 };
 
 class Bond {
-	float vertices[16] = {}; //coordinates for the ends of lines: 16 being max, because of the max of 8 atoms
+	float vertices[16*100] = {}; //coordinates for the ends of lines: 16 being max, because of the max of 8 atoms
 	int points = 0; //# of points to be connected by lines
 	vec2 wTranslate;
 	float phi = 0;
@@ -163,6 +166,9 @@ class Bond {
 public:
 	Bond() {
 		points = 0;
+	}
+	void rotate(float angle) {
+		phi += angle;
 	}
 	//Source: smoothtrianlge.cpp available at online.vik.bme.hu
 	mat4 M() {
@@ -200,9 +206,27 @@ public:
 	}
 	void addPoint(float x, float y) {
 		printf("\tnew Bond endpoint at: %.0f %.0f\n", x, y);
-		vertices[points] = x;
-		vertices[++points] = y; //increases 'int points' by one
-		points++;
+		if (points == 0) {
+			vertices[points] = x;
+			vertices[++points] = y;
+			points++;
+		}
+		else {
+			float lastX, lastY;
+			if (points == 2) {
+				lastX = vertices[0];
+				lastY = vertices[1];
+			}
+			else {
+				lastX = vertices[points - 2];
+				lastY = vertices[points - 1];
+			}
+			for (int i = 1; i <= 100; i++) {
+				vertices[points] = lastX + ((x - lastX) / 100) * i;
+				vertices[++points] = lastY + ((y - lastY) / 100) * i;
+				points++;
+			}
+		}
 	}
 };
 
@@ -211,7 +235,12 @@ public:
 	int n = rand() % 8 + 2; //# of atoms
 	Atom atoms[8];
 	Bond b; 
-
+	void rotate(float angle) {
+		b.rotate(angle);
+		for (int i = 0; i < n; i++) {
+			atoms[i].rotate(angle);
+		}
+	}
 	void init() {
 		b = Bond();
 		n = rand() % 8 + 2;
@@ -235,6 +264,7 @@ public:
 };
 
 Molecule m = Molecule();
+Molecule n = Molecule();
 
 // Initialization, create an OpenGL context
 void onInitialization() {
@@ -252,6 +282,7 @@ void onInitialization() {
 	gpuProgram.create(vertexSource, fragmentSource, "outColor");
 	
 	m.init();
+	n.init();
 }
 // Window has become invalid: Redraw
 void onDisplay() {
@@ -265,6 +296,7 @@ void onDisplay() {
 	glUniform3f(location, 0.0f, 1.0f, 0.0f); // 3 floats
 
 	m.draw();
+	n.draw();
 
 	glutSwapBuffers(); // exchange buffers for double buffering
 }
@@ -275,12 +307,13 @@ void onKeyboard(unsigned char key, int pX, int pY) {
 	if (key == ' ') {
 		printf("\nSpace pressed\n");
 		m.init();
+		n.init();
 	}
 	switch (key) {
-	case 's': camera.Pan(vec2(-1, 0)); break;
-	case 'd': camera.Pan(vec2(+1, 0)); break;
-	case 'e': camera.Pan(vec2(0, 1)); break;
-	case 'x': camera.Pan(vec2(0, -1)); break;
+	case 's': camera.Pan(vec2(-0.01f, 0)); break;
+	case 'd': camera.Pan(vec2(+0.01f, 0)); break;
+	case 'e': camera.Pan(vec2(0, 0.01f)); break;
+	case 'x': camera.Pan(vec2(0, -0.01f)); break;
 	case 'z': camera.Zoom(0.9f); break;
 	case 'Z': camera.Zoom(1.1f); break;
 	}
@@ -297,7 +330,13 @@ void onMouseMotion(int pX, int pY) {}
 // Mouse click event
 void onMouse(int button, int state, int pX, int pY) {}
 
+long lastTime = 0;
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program;
+	float vAngular = pi/18; //rad per sec
+	m.rotate(vAngular * (time-lastTime)/1000.0f);
+	n.rotate(vAngular * (time - lastTime) / 1000.0f * -1);
+	lastTime = time;
+	glutPostRedisplay();
 }
