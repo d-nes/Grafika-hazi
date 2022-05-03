@@ -76,12 +76,13 @@ struct Sphere : public Intersectable {
 struct Cylinder : public Intersectable {
 	vec3 center;
 	float radius;
-	float height = 1.0f;
+	float height;
 
-	Cylinder(const vec3& _center, float _radius, Material* _material) {
+	Cylinder(const vec3& _center, float _radius, float _height, Material* _material) {
 		center = _center;
 		radius = _radius;
 		material = _material;
+		height = _height;
 	}
 
 	Hit intersect(const Ray& ray) {
@@ -102,7 +103,35 @@ struct Cylinder : public Intersectable {
 		if (t1 <= 0) 
 			return hit;
 
+		
 		vec3 point = dist + ray.dir * t1;
+		//henger alapjai
+		if (point.y == (- height + center.y) / ray.dir.y) {
+			printf("kuki");
+			hit.t = (t2 > 0) ? t2 : t1;
+			hit.position = ray.start + ray.dir * hit.t;
+			hit.normal = (hit.position - center) * (1.0f / radius);
+			hit.material = material;
+		}
+
+		/*
+		float topT = (height + center.y) / ray.dir.y;
+		float bottomT =  (-height + center.y) / ray.dir.y;
+		if (topT > 0.0f && bottomT > 0.0f) {
+			//printf("1\n");
+			float t = min(topT, bottomT);
+			vec3 intersection = ray.dir * t;
+			if (length((vec2(intersection.x, intersection.z) - vec2(center.x, center.z))) <= radius) {
+				//printf("2\n");
+				hit.t = (t2 > 0) ? t2 : t1;
+				hit.position = ray.start + ray.dir * hit.t;
+				hit.normal = (hit.position - center) * (1.0f / radius);
+				hit.material = material;
+			}
+		}
+		*/
+
+		//henger elvágása
 		if (point.y < 0 || point.y > height) {
 			return hit;
 		}
@@ -114,6 +143,31 @@ struct Cylinder : public Intersectable {
 		return hit;
 	}
 };
+
+struct Plane : public Intersectable {
+	vec3 center;
+	vec3 normal = vec3(0, 1, 0);
+	Plane(const vec3& _center, Material* _material) {
+		center = _center;
+		material = _material;
+	}
+	Hit intersect(const Ray& ray) {
+		Hit hit;
+		float denom = dot(ray.dir, normal);
+		float t = dot((center - ray.start), normal) / denom;
+		if (abs(denom > 0.0001f)) {
+			if (t >= 0) {
+				return hit;
+			}
+		}
+		hit.t = t;
+		hit.position = ray.start + ray.dir * hit.t;
+		hit.normal = normal;
+		hit.material = material;
+		return hit;
+	}
+};
+
 
 class Camera {
 	vec3 eye, lookat, right, up;
@@ -169,11 +223,20 @@ public:
 
 		vec3 kd(0.3f, 0.2f, 0.1f), ks(2, 2, 2);
 		Material * material = new Material(kd, ks, 50);
+
 		/*for (int i = 0; i < 50; i++) 
 			objects.push_back(new Sphere(vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f), rnd() * 0.1f, material));*/
-		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.2f, material));
-		objects.push_back(new Sphere(vec3(0.2f, -0.3f, 0.2f), 0.2f, material));
-		objects.push_back(new Sphere(vec3(-0.2f, -0.3f, -0.2f), 0.2f, material));
+
+		//plane
+		objects.push_back(new Plane(vec3(0.0f, 0.0f, 0.0f), material));
+		//base
+		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.2f, 0.05f, material));
+		//rudi 1
+		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.03f, 0.3f, material));
+		//csukló 1
+		objects.push_back(new Sphere(vec3(0.0f, 0.0f, 0.0f), 0.04f, material));
+		//rudi 2
+		objects.push_back(new Cylinder(vec3(0.0f, 0.0f, 0.0f), 0.03f, 0.3f, material));
 	}
 
 	void render(std::vector<vec4>& image) {
