@@ -1,5 +1,20 @@
 //=============================================================================================
-// Computer Graphics Sample Program: Ray-tracing-let
+// A kód alapja: Computer Graphics Sample Program: Ray-tracing-let
+//=============================================================================================
+// NYILATKOZAT
+// ---------------------------------------------------------------------------------------------
+// Nev    : Urban Denes Jakab
+// Neptun : TOPKQH
+// ---------------------------------------------------------------------------------------------
+// ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy
+// mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem.
+// A forrasmegjeloles kotelme vonatkozik az eloadas foliakat es a targy oktatoi, illetve a
+// grafhazi doktor tanacsait kiveve barmilyen csatornan (szoban, irasban, Interneten, stb.) erkezo minden egyeb
+// informaciora (keplet, program, algoritmus, stb.). Kijelentem, hogy a forrasmegjelolessel atvett reszeket is ertem,
+// azok helyessegere matematikai bizonyitast tudok adni. Tisztaban vagyok azzal, hogy az atvett reszek nem szamitanak
+// a sajat kontribucioba, igy a feladat elfogadasarol a tobbi resz mennyisege es minosege alapjan szuletik dontes.
+// Tudomasul veszem, hogy a forrasmegjeloles kotelmenek megsertese eseten a hazifeladatra adhato pontokat
+// negativ elojellel szamoljak el es ezzel parhuzamosan eljaras is indul velem szemben.
 //=============================================================================================
 #include "framework.h"
 
@@ -43,13 +58,55 @@ struct Sphere : public Intersectable {
 		vec3 dist = ray.start - center;
 		float a = dot(ray.dir, ray.dir);
 		float b = dot(dist, ray.dir) * 2.0f;
-		float c = dot(dist, dist) - radius * radius;
+		float c = dot(dist, dist) - radius*radius;
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0) return hit;
 		float sqrt_discr = sqrtf(discr);
 		float t1 = (-b + sqrt_discr) / 2.0f / a;	// t1 >= t2 for sure
 		float t2 = (-b - sqrt_discr) / 2.0f / a;
 		if (t1 <= 0) return hit;
+		hit.t = (t2 > 0) ? t2 : t1;
+		hit.position = ray.start + ray.dir * hit.t;
+		hit.normal = (hit.position - center) * (1.0f / radius);
+		hit.material = material;
+		return hit;
+	}
+};
+
+struct Cylinder : public Intersectable {
+	vec3 center;
+	float radius;
+	float height = 1.0f;
+
+	Cylinder(const vec3& _center, float _radius, Material* _material) {
+		center = _center;
+		radius = _radius;
+		material = _material;
+	}
+
+	Hit intersect(const Ray& ray) {
+		Hit hit;
+		vec3 dist = ray.start - center;
+		//float a = dot(ray.dir, ray.dir);
+		//float b = dot(dist, ray.dir) * 2.0f;
+		//float c = dot(dist, dist) - radius*radius;
+		float a = ray.dir.x * ray.dir.x + ray.dir.z * ray.dir.z;
+		float b = 2.0f * (dist.x * ray.dir.x + dist.z * ray.dir.z);
+		float c = (dist.x * dist.x + dist.z * dist.z) - radius * radius;
+		float discr = b * b - 4.0f * a * c;
+		if (discr < 0) 
+			return hit;
+		float sqrt_discr = sqrtf(discr);
+		float t1 = (-b + sqrt_discr) / 2.0f / a;	// t1 >= t2 for sure
+		float t2 = (-b - sqrt_discr) / 2.0f / a;
+		if (t1 <= 0) 
+			return hit;
+
+		vec3 point = dist + ray.dir * t1;
+		if (point.y < 0 || point.y > height) {
+			return hit;
+		}
+
 		hit.t = (t2 > 0) ? t2 : t1;
 		hit.position = ray.start + ray.dir * hit.t;
 		hit.normal = (hit.position - center) * (1.0f / radius);
@@ -112,8 +169,11 @@ public:
 
 		vec3 kd(0.3f, 0.2f, 0.1f), ks(2, 2, 2);
 		Material * material = new Material(kd, ks, 50);
-		for (int i = 0; i < 50; i++) 
-			objects.push_back(new Sphere(vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f), rnd() * 0.1f, material));
+		/*for (int i = 0; i < 50; i++) 
+			objects.push_back(new Sphere(vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f), rnd() * 0.1f, material));*/
+		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.2f, material));
+		objects.push_back(new Sphere(vec3(0.2f, -0.3f, 0.2f), 0.2f, material));
+		objects.push_back(new Sphere(vec3(-0.2f, -0.3f, -0.2f), 0.2f, material));
 	}
 
 	void render(std::vector<vec4>& image) {
