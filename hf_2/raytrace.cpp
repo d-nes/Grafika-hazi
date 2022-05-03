@@ -60,8 +60,10 @@ struct Sphere : public Intersectable {
 
 class Camera {
 	vec3 eye, lookat, right, up;
+	float fov;
 public:
 	void set(vec3 _eye, vec3 _lookat, vec3 vup, float fov) {
+		this->fov = fov;
 		eye = _eye;
 		lookat = _lookat;
 		vec3 w = eye - lookat;
@@ -72,6 +74,11 @@ public:
 	Ray getRay(int X, int Y) {
 		vec3 dir = lookat + right * (2.0f * (X + 0.5f) / windowWidth - 1) + up * (2.0f * (Y + 0.5f) / windowHeight - 1) - eye;
 		return Ray(eye, dir);
+	}
+	void Animate(float dt) {
+		vec3 d = eye - lookat;
+		eye = vec3(d.x * cos(dt) + d.z * sin(dt), d.y, -d.x * sin(dt) + d.z * cos(dt)) + lookat;
+		set(eye, lookat, up, fov);
 	}
 };
 
@@ -150,6 +157,10 @@ public:
 		}
 		return outRadiance;
 	}
+
+	void Animate(float dt) {
+		camera.Animate(dt);
+	}
 };
 
 GPUProgram gpuProgram; // vertex and fragment shaders
@@ -218,6 +229,13 @@ void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 	scene.build();
 
+	// create program for the GPU
+	gpuProgram.create(vertexSource, fragmentSource, "fragmentColor");
+}
+
+// Window has become invalid: Redraw
+void onDisplay() {
+
 	std::vector<vec4> image(windowWidth * windowHeight);
 	long timeStart = glutGet(GLUT_ELAPSED_TIME);
 	scene.render(image);
@@ -226,13 +244,6 @@ void onInitialization() {
 
 	// copy image to GPU as a texture
 	fullScreenTexturedQuad = new FullScreenTexturedQuad(windowWidth, windowHeight, image);
-
-	// create program for the GPU
-	gpuProgram.create(vertexSource, fragmentSource, "fragmentColor");
-}
-
-// Window has become invalid: Redraw
-void onDisplay() {
 	fullScreenTexturedQuad->Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
@@ -256,4 +267,6 @@ void onMouseMotion(int pX, int pY) {
 
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
+	scene.Animate(0.1f);
+	glutPostRedisplay();
 }
