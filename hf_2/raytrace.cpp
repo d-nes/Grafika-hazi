@@ -18,6 +18,8 @@
 //=============================================================================================
 #include "framework.h"
 
+const float epsilon = 0.0001f;
+
 struct Material {
 	vec3 ka, kd, ks;
 	float  shininess;
@@ -113,7 +115,7 @@ struct Cylinder : public Intersectable {
 		return hit;
 	}
 };
-
+/*
 struct CylinderCap : public Intersectable {
 	vec3 center;
 	float radius;
@@ -145,17 +147,34 @@ struct CylinderCap : public Intersectable {
 		return false;
 	}
 };
+*/
 
+//Source: pathtracingfinal.cpp
+//from: online.vik.bme.hu
 struct Plane : public Intersectable {
-	vec3 center;
-	vec3 normal = vec3(0, 1, 0);
-	Plane(const vec3& _center, Material* _material) {
-		center = _center;
+	vec3 point, normal;
+
+	Plane(const vec3& _point, const vec3& _normal, Material* _material) : Intersectable() {
+		point = _point;
+		//normal = _normal.normalize();
+		normal = _normal * (1 / (sqrt(_normal.x * _normal.x + _normal.y * _normal.y + _normal.z * _normal.z) + epsilon));
 		material = _material;
 	}
 	Hit intersect(const Ray& ray) {
 		Hit hit;
-		
+		double NdotV = dot(normal, ray.dir);
+		if (fabs(NdotV) < epsilon) 
+			return hit;
+		double t = dot(normal, point - ray.start) / NdotV;
+		if (t < epsilon) 
+			return hit;
+		hit.t = t;
+		hit.position = ray.start + ray.dir * hit.t;
+		hit.normal = normal;
+		if (dot(hit.normal, ray.dir) > 0) 
+			hit.normal = hit.normal * (-1);
+		hit.material = material;
+		return hit;
 	}
 };
 
@@ -243,6 +262,7 @@ public:
 	}
 };
 
+/*
 struct Light {
 	vec3 direction;
 	vec3 Le;
@@ -251,10 +271,41 @@ struct Light {
 		Le = _Le;
 	}
 };
+*/
+
+//Source: pathtracingfinal.cpp
+//from: online.vik.bme.hu
+struct Light {
+	vec3 location;
+	vec3 power;
+	vec3 direction;
+	vec3 Le;
+
+	Light(vec3 _location, vec3 _power, vec3 _direction, vec3 _Le) {
+		location = _location;
+		power = _power;
+		direction = normalize(_direction);
+		Le = _Le;
+	}
+	double distanceOf(vec3 point) {
+		//return (location - point).length();
+		vec3 ret = vec3(location - point);
+		return sqrt(ret.x * ret.x + ret.y * ret.y * ret.z * ret.z);
+	}
+	vec3 directionOf(vec3 point) {
+		//return (location - point).normalize();
+		vec3 ret = vec3(location - point);
+		return ret * (1 / (sqrt(ret.x * ret.x + ret.y * ret.y + ret.z * ret.z) + epsilon));
+	}
+	vec3 radianceAt(vec3 point) {
+		double distance2 = dot(location - point, location - point);
+		if (distance2 < epsilon) distance2 = epsilon;
+		return power / distance2 / 4 / M_PI;
+	}
+};
 
 float rnd() { return (float)rand() / RAND_MAX; }
 
-const float epsilon = 0.0001f;
 
 class Scene {
 	std::vector<Intersectable *> objects;
@@ -267,21 +318,24 @@ public:
 		float fov = 45 * M_PI / 180;
 		camera.set(eye, lookat, vup, fov);
 
+		/*
 		La = vec3(0.4f, 0.4f, 0.4f);
-		vec3 lightDirection(1, 1, 1), Le(2, 2, 2);
+		vec3 lightDirection(1, 0, 1), Le(2, 2, 2);
 		lights.push_back(new Light(lightDirection, Le));
+		*/
+
+		lights.push_back(new Light(vec3(1.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 0), vec3(2, 2, 2)));
 
 		vec3 kd(0.3f, 0.2f, 0.1f), ks(2, 2, 2);
 		Material * material = new Material(kd, ks, 50);
 
-		/*for (int i = 0; i < 50; i++) 
-			objects.push_back(new Sphere(vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f), rnd() * 0.1f, material));*/
+		Material* planeMat = new Material(vec3(0.2f, 0.2f, 0.2f), vec3(2, 2, 2), 50);
 
-		//plane
-		//objects.push_back(new Plane(vec3(0.0f, 0.0f, 0.0f), material));
-		//base
+		//sík
+		objects.push_back(new Plane(vec3(0.0f, -0.3f, 0.0f), vec3(0, 1, 0), planeMat));
+		//talp
 		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.2f, 0.05f, material));
-		//base cap
+		//talp teteje
 		//objects.push_back(new CylinderCap(vec3(0.0f, 0.0f, 0.0f), 0.2f, material));
 		// csukló 1
 		objects.push_back(new Sphere(vec3(0.0f, -0.25f, 0.0f), 0.02f, material));
@@ -321,7 +375,7 @@ public:
 		for (Intersectable * object : objects) if (object->intersect(ray).t > 0) return true;
 		return false;
 	}
-
+	
 	vec3 trace(Ray ray, int depth = 0) {
 		Hit hit = firstIntersect(ray);
 		if (hit.t < 0) return La;
