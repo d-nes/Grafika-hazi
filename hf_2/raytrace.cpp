@@ -75,30 +75,6 @@ struct Sphere : public Intersectable {
 	}
 };
 
-struct CylinderCap : public Intersectable {
-	vec3 center;
-	float radius;
-	vec3 normal;
-	CylinderCap(const vec3& _center, const vec3& _normal, float _radius, Material* _material) {
-		center = _center;
-		normal = _normal;
-		radius = _radius;
-		material = _material;
-	}
-	Hit intersect(const Ray& ray) {
-		Hit hit;
-		float t = dot((center - ray.start), normal) / dot(ray.dir, normal);
-		if (length((ray.start + ray.dir * t) - center) > radius) {
-			return hit;
-		}
-		hit.t = t;
-		hit.normal = normalize(ray.start + ray.dir * t);
-		hit.material = material;
-		return hit;
-	}
-	
-};
-
 
 //Source: pathtracingfinal.cpp
 //from: online.vik.bme.hu
@@ -107,7 +83,6 @@ struct Plane : public Intersectable {
 
 	Plane(const vec3& _point, const vec3& _normal, Material* _material) : Intersectable() {
 		point = _point;
-		//normal = _normal.normalize();
 		normal = _normal * (1 / (sqrt(_normal.x * _normal.x + _normal.y * _normal.y + _normal.z * _normal.z) + epsilon));
 		material = _material;
 	}
@@ -127,6 +102,40 @@ struct Plane : public Intersectable {
 		hit.material = material;
 		return hit;
 	}
+};
+
+struct CylinderCap : public Intersectable {
+	vec3 center;
+	float radius;
+	vec3 normal;
+	CylinderCap(const vec3& _center, const vec3& _normal, float _radius, Material* _material) {
+		center = _center;
+		normal = _normal;
+		radius = _radius;
+		material = _material;
+	}
+	//Inspired by: pathtracingfinal.cpp
+	//from: online.vik.bme.hu
+	Hit intersect(const Ray& ray) {
+		Hit hit;
+		double NdotV = dot(normal, ray.dir);
+		if (fabs(NdotV) < epsilon)
+			return hit;
+		double t = dot(normal, center - ray.start) / NdotV;
+		if (t < epsilon)
+			return hit;
+		if (length((ray.start + ray.dir * t) - center) > radius) {
+			return hit;
+		}
+		hit.t = t;
+		hit.position = ray.start + ray.dir * hit.t;
+		hit.normal = normal;
+		if (dot(hit.normal, ray.dir) > 0)
+			hit.normal = hit.normal * (-1);
+		hit.material = material;
+		return hit;
+	}
+	
 };
 
 //Inspired by: 9.5. Programozás: Napfénycső szimulátor sugárkövetéssel
@@ -195,6 +204,7 @@ struct Cylinder : public Intersectable {
 		return hit;
 	}
 };
+
 //Inspired by: 9.5. Programozás: Napfénycső szimulátor sugárkövetéssel
 //@: https://www.youtube.com/watch?v=nSHkU4fMK_g
 struct Paraboloid : public Intersectable {
