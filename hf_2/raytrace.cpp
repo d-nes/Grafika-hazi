@@ -1,4 +1,4 @@
-﻿//=============================================================================================
+//=============================================================================================
 // A kód alapja: Computer Graphics Sample Program: Ray-tracing-let
 //=============================================================================================
 // NYILATKOZAT
@@ -28,9 +28,9 @@ struct Material {
 
 struct Hit {
 	float t;
-	vec3 position, normal;
-	Material * material;
-	Hit() { t = -1; }
+vec3 position, normal;
+Material* material;
+Hit() { t = -1; }
 };
 
 struct Ray {
@@ -40,7 +40,7 @@ struct Ray {
 
 class Intersectable {
 protected:
-	Material * material;
+	Material* material;
 public:
 	virtual Hit intersect(const Ray& ray) = 0;
 };
@@ -60,7 +60,7 @@ struct Sphere : public Intersectable {
 		vec3 dist = ray.start - center;
 		float a = dot(ray.dir, ray.dir);
 		float b = dot(dist, ray.dir) * 2.0f;
-		float c = dot(dist, dist) - radius*radius;
+		float c = dot(dist, dist) - radius * radius;
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0) return hit;
 		float sqrt_discr = sqrtf(discr);
@@ -75,79 +75,30 @@ struct Sphere : public Intersectable {
 	}
 };
 
-struct Cylinder : public Intersectable {
-	vec3 center;
-	float radius;
-	float height;
-
-	Cylinder(const vec3& _center, float _radius, float _height, Material* _material) {
-		center = _center;
-		radius = _radius;
-		material = _material;
-		height = _height;
-	}
-
-	Hit intersect(const Ray& ray) {
-		Hit hit;
-		vec3 dist = ray.start - center;
-		float a = ray.dir.x * ray.dir.x + ray.dir.z * ray.dir.z;
-		float b = 2.0f * (dist.x * ray.dir.x + dist.z * ray.dir.z);
-		float c = (dist.x * dist.x + dist.z * dist.z) - radius * radius;
-		float discr = b * b - 4.0f * a * c;
-		if (discr < 0) 
-			return hit;
-		float sqrt_discr = sqrtf(discr);
-		float t1 = (-b + sqrt_discr) / 2.0f / a;	// t1 >= t2 for sure
-		float t2 = (-b - sqrt_discr) / 2.0f / a;
-		if (t1 <= 0) 
-			return hit;
-
-		//henger elvágása
-		vec3 point = dist + ray.dir * t1;
-		if (point.y < 0 || point.y > height) {
-			return hit;
-		}
-
-		hit.t = (t2 > 0) ? t2 : t1;
-		hit.position = ray.start + ray.dir * hit.t;
-		hit.normal = (hit.position - center) * (1.0f / radius);
-		hit.material = material;
-		return hit;
-	}
-};
-/*
 struct CylinderCap : public Intersectable {
 	vec3 center;
 	float radius;
-	vec3 normal = vec3(0, 1, 0);
-	CylinderCap(const vec3& _center, float _radius, Material* _material) {
+	vec3 normal;
+	CylinderCap(const vec3& _center, const vec3& _normal, float _radius, Material* _material) {
 		center = _center;
+		normal = _normal;
+		radius = _radius;
 		material = _material;
 	}
 	Hit intersect(const Ray& ray) {
 		Hit hit;
-		float t = 0;
-		if (intersectPlane(normal, center, ray.start, ray.dir, t)) {
-			vec3 p = ray.start + ray.dir * t;
-			vec3 v = p - center;
-			float d2 = dot(v, v);
-			
+		float t = dot((center - ray.start), normal) / dot(ray.dir, normal);
+		if (length((ray.start + ray.dir * t) - center) > radius) {
+			return hit;
 		}
+		hit.t = t;
+		hit.normal = normalize(ray.start + ray.dir * t);
+		hit.material = material;
 		return hit;
 	}
-	bool intersectPlane(const vec3& n, const vec3& p0, const vec3& l0, const vec3& l, float& t)
-	{
-		float denom = dot(n, l);
-		if (denom > 1e-6) {
-			vec3 p0l0 = p0 - l0;
-			t = dot(p0l0, n) / denom;
-			return (t >= 0);
-		}
-
-		return false;
-	}
+	
 };
-*/
+
 
 //Source: pathtracingfinal.cpp
 //from: online.vik.bme.hu
@@ -178,6 +129,72 @@ struct Plane : public Intersectable {
 	}
 };
 
+//Inspired by: 9.5. Programozás: Napfénycső szimulátor sugárkövetéssel
+//@: https://www.youtube.com/watch?v=nSHkU4fMK_g
+struct Cylinder : public Intersectable {
+	mat4 Q;
+	float zmin, zmax;
+	float height;
+	vec3 translation;
+
+	Cylinder(mat4 _Q, float _zmin, float _zmax, vec3 _translation, float _height, Material* _material) {
+		Q = _Q;
+		zmin = _zmin;
+		zmax = _zmax;
+		translation = _translation;
+		material = _material;
+		height = _height;
+	}
+	//quadratic surface gradient
+	vec3 gradf(vec3 r) {
+		vec4 g = vec4(r.x, r.y, r.z, 1) * Q * 2;
+		return vec3(g.x, g.y, g.z);
+	}
+
+	Hit intersect(const Ray& ray) {
+		Hit hit;
+		vec3 start = ray.start - translation;
+		vec4 S(start.x, start.y, start.z, 1), D(ray.dir.x, ray.dir.y, ray.dir.z, 0);
+		float a = dot(D * Q, D), b = dot(S * Q, D) * 2, c = dot(S * Q, S);
+		float discr = b * b - 4.0f * a * c;
+		if (discr < 0)
+			return hit;
+		float sqrt_discr = sqrtf(discr);
+
+		float t1 = (-b + sqrt_discr) / 2.0f / a;
+		vec3 p1 = ray.start + ray.dir * t1;
+		if (p1.z < zmin || p1.z > zmax)
+			t1 = -1;
+
+		float t2 = (-b - sqrt_discr) / 2.0f / a;
+		vec3 p2 = ray.start + ray.dir * t2;
+		if (p2.z < zmin || p2.z > zmax)
+			t2 = -1;
+
+		//henger elvágása
+		vec3 dist = ray.start - translation;
+		vec3 point = dist + ray.dir * t1;
+		if (point.y < 0 || point.y > height) {
+			return hit;
+		}
+
+		if (t1 <= 0 && t2 <= 0)
+			return hit;
+		if (t1 <= 0)
+			hit.t = 2;
+		else if (t2 <= 0)
+			hit.t = t1;
+		else if (t2 < t1)
+			hit.t = t2;
+		else
+			hit.t = t1;
+		hit.position = start + ray.dir * hit.t;
+		hit.normal = normalize(gradf(hit.position));
+		hit.position = hit.position + translation;
+		hit.material = material;
+		return hit;
+	}
+};
 //Inspired by: 9.5. Programozás: Napfénycső szimulátor sugárkövetéssel
 //@: https://www.youtube.com/watch?v=nSHkU4fMK_g
 struct Paraboloid : public Intersectable {
@@ -320,35 +337,36 @@ public:
 
 		/*
 		La = vec3(0.4f, 0.4f, 0.4f);
-		vec3 lightDirection(1, 0, 1), Le(2, 2, 2);
+		vec3 lightDirection(0, 1, 1), Le(2, 2, 2);
 		lights.push_back(new Light(lightDirection, Le));
 		*/
 
-		lights.push_back(new Light(vec3(1.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 0), vec3(2, 2, 2)));
+		lights.push_back(new Light(vec3(0.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 0), vec3(2, 2, 2)));
 
 		vec3 kd(0.3f, 0.2f, 0.1f), ks(2, 2, 2);
 		Material * material = new Material(kd, ks, 50);
 
-		Material* planeMat = new Material(vec3(0.2f, 0.2f, 0.2f), vec3(2, 2, 2), 50);
+		Material* planeMat = new Material(vec3(1.0f, 1.0f, 1.0f), vec3(2, 2, 2), 0);
 
 		//sík
 		objects.push_back(new Plane(vec3(0.0f, -0.3f, 0.0f), vec3(0, 1, 0), planeMat));
-		//talp
-		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.2f, 0.05f, material));
 		//talp teteje
-		//objects.push_back(new CylinderCap(vec3(0.0f, 0.0f, 0.0f), 0.2f, material));
+		objects.push_back(new CylinderCap(vec3(0.0f, -0.25f, 0.0f), vec3(0, 1, 0), 0.2f, material));
+		//talp
+		objects.push_back(new Cylinder(ScaleMatrix(vec3(-25.0f, 0.0f, -25.0f)), - 1.0f, 1.0f, vec3(0.0f, -0.3f, 0.0f), 0.05f, material));
 		// csukló 1
-		objects.push_back(new Sphere(vec3(0.0f, -0.25f, 0.0f), 0.02f, material));
+		objects.push_back(new Sphere(vec3(0.0f, -0.25f, 0.0f), 0.03f, material));
 		//rudi 1
-		objects.push_back(new Cylinder(vec3(0.0f, -0.3f, 0.0f), 0.01f, 0.3f, material));
+		objects.push_back(new Cylinder(ScaleMatrix(vec3(-2500.0f, 0.0f, -2500.0f)), - 1.0f, 1.0f, vec3(0.0f, -0.3f, 0.0f), 0.3f, material));
 		//csukló 2
-		objects.push_back(new Sphere(vec3(0.0f, 0.0f, 0.0f), 0.02f, material));
+		objects.push_back(new Sphere(vec3(0.0f, 0.0f, 0.0f), 0.03f, material));
 		//rudi 2
-		objects.push_back(new Cylinder(vec3(0.0f, 0.0f, 0.0f), 0.01f, 0.3f, material));
+		objects.push_back(new Cylinder(ScaleMatrix(vec3(-2500.0f, 0.0f, -2500.0f)), - 1.0f, 1.0f, vec3(0.0f, 0.0f, 0.0f), 0.3f, material));
 		//csukló 3
-		objects.push_back(new Sphere(vec3(0.0f, 0.3f, 0.0f), 0.02f, material));
+		objects.push_back(new Sphere(vec3(0.0f, 0.3f, 0.0f), 0.03f, material));
 		//búra
 		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, 0.0f), material));
+
 	}
 
 	void render(std::vector<vec4>& image) {
@@ -502,6 +520,6 @@ void onMouseMotion(int pX, int pY) {
 
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
-	scene.Animate(0.1f);
+	scene.Animate(0.5f);
 	glutPostRedisplay();
 }
