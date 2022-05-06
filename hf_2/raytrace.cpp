@@ -305,6 +305,7 @@ struct Light {
 struct Light {
 	vec3 location;
 	vec3 power;
+
 	vec3 direction;
 	vec3 Le;
 
@@ -341,7 +342,7 @@ class Scene {
 	vec3 La;
 public:
 	void build() {
-		vec3 eye = vec3(0, 0, 2), vup = vec3(0, 1, 0), lookat = vec3(0, 0, 0);
+		vec3 eye = vec3(0, 1, 2), vup = vec3(0, 1, 0), lookat = vec3(0, 0, 0);
 		float fov = 45 * M_PI / 180;
 		camera.set(eye, lookat, vup, fov);
 
@@ -351,7 +352,7 @@ public:
 		lights.push_back(new Light(lightDirection, Le));
 		*/
 
-		lights.push_back(new Light(vec3(0.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 0), vec3(2, 2, 2)));
+		lights.push_back(new Light(vec3(0.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 1), vec3(2, 2, 2)));
 
 		Material * material = new Material(vec3(0.39f, 0.55f, 0.71f), vec3(2, 2, 2), 50);
 		Material* planeMat = new Material(vec3(1.0f, 0.52f, 0.42f), vec3(2, 2, 2), 50);
@@ -420,7 +421,7 @@ public:
 	}
 
 	void Animate(float dt) {
-		camera.Animate(dt);
+		//camera.Animate(dt);
 	}
 };
 
