@@ -208,10 +208,11 @@ struct Cylinder : public Intersectable {
 //Inspired by: 9.5. Programozás: Napfénycső szimulátor sugárkövetéssel
 //@: https://www.youtube.com/watch?v=nSHkU4fMK_g
 struct Paraboloid : public Intersectable {
-	mat4 Q = mat4(16, 0, 0, 0,
-		0, 16, 0, 0,
-		0, 0, 0, 1,
-		0, 0, 1, 0);
+	mat4 Q = mat4(	10, 0, 0, 0,
+					0, 10, 0, 0,
+					0, 0, 0, -1,
+					0, 0, -1, 0
+	);
 	float zmin, zmax;
 	vec3 translation;
 
@@ -337,7 +338,7 @@ public:
 		//csukló 3
 		objects.push_back(new Sphere(vec3(0.0f, 0.3f, 0.0f), 0.03f, material));
 		//búra
-		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, 0.0f), material));
+		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, 0.02f), material));
 
 	}
 
@@ -384,7 +385,7 @@ public:
 	}
 
 	void Animate(float dt) {
-		//camera.Animate(dt);
+		camera.Animate(dt);
 	}
 };
 
