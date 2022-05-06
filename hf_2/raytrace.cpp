@@ -289,7 +289,7 @@ public:
 	}
 };
 
-/*
+
 struct Light {
 	vec3 direction;
 	vec3 Le;
@@ -298,42 +298,9 @@ struct Light {
 		Le = _Le;
 	}
 };
-*/
 
-//Source: pathtracingfinal.cpp
-//from: online.vik.bme.hu
-struct Light {
-	vec3 location;
-	vec3 power;
-
-	vec3 direction;
-	vec3 Le;
-
-	Light(vec3 _location, vec3 _power, vec3 _direction, vec3 _Le) {
-		location = _location;
-		power = _power;
-		direction = normalize(_direction);
-		Le = _Le;
-	}
-	double distanceOf(vec3 point) {
-		//return (location - point).length();
-		vec3 ret = vec3(location - point);
-		return sqrt(ret.x * ret.x + ret.y * ret.y * ret.z * ret.z);
-	}
-	vec3 directionOf(vec3 point) {
-		//return (location - point).normalize();
-		vec3 ret = vec3(location - point);
-		return ret * (1 / (sqrt(ret.x * ret.x + ret.y * ret.y + ret.z * ret.z) + epsilon));
-	}
-	vec3 radianceAt(vec3 point) {
-		double distance2 = dot(location - point, location - point);
-		if (distance2 < epsilon) distance2 = epsilon;
-		return power / distance2 / 4 / M_PI;
-	}
-};
 
 float rnd() { return (float)rand() / RAND_MAX; }
-
 
 class Scene {
 	std::vector<Intersectable *> objects;
@@ -346,13 +313,9 @@ public:
 		float fov = 45 * M_PI / 180;
 		camera.set(eye, lookat, vup, fov);
 
-		/*
-		La = vec3(0.4f, 0.4f, 0.4f);
-		vec3 lightDirection(0, 1, 1), Le(2, 2, 2);
+		La = vec3(0.01f, 0.01f, 0.01f);
+		vec3 lightDirection(1, 1, 1), Le(2, 2, 2);
 		lights.push_back(new Light(lightDirection, Le));
-		*/
-
-		lights.push_back(new Light(vec3(0.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 1), vec3(2, 2, 2)));
 
 		Material * material = new Material(vec3(0.39f, 0.55f, 0.71f), vec3(2, 2, 2), 50);
 		Material* planeMat = new Material(vec3(1.0f, 0.52f, 0.42f), vec3(2, 2, 2), 50);
