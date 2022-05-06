@@ -353,10 +353,8 @@ public:
 
 		lights.push_back(new Light(vec3(0.0f, 1.0f, 0.0f), vec3(500, 500, 500), vec3(1, 1, 0), vec3(2, 2, 2)));
 
-		vec3 kd(0.3f, 0.2f, 0.1f), ks(2, 2, 2);
-		Material * material = new Material(kd, ks, 50);
-
-		Material* planeMat = new Material(vec3(1.0f, 1.0f, 1.0f), vec3(2, 2, 2), 0);
+		Material * material = new Material(vec3(0.39f, 0.55f, 0.71f), vec3(2, 2, 2), 50);
+		Material* planeMat = new Material(vec3(1.0f, 0.52f, 0.42f), vec3(2, 2, 2), 50);
 
 		//sík
 		objects.push_back(new Plane(vec3(0.0f, -0.3f, 0.0f), vec3(0, 1, 0), planeMat));
