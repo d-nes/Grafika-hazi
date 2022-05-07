@@ -74,18 +74,25 @@ vec3 quatRot(vec4 q, vec3 p) {
 struct Sphere : public Intersectable {
 	vec3 center;
 	float radius;
+	vec3 rot;
 
-	Sphere(const vec3& _center, float _radius, Material* _material) {
+	Sphere(const vec3& _center, float _radius, Material* _material, vec3 _rot) {
 		center = _center;
 		radius = _radius;
 		material = _material;
+		rot = _rot;
 	}
 
 	Hit intersect(const Ray& ray) {
+
+		vec4 q = quat(normalize(rot), cycle);
+		vec3 origin = quatRot(q, ray.start);
+		vec3 dir = quatRot(q, ray.dir);
+
 		Hit hit;
-		vec3 dist = ray.start - center;
-		float a = dot(ray.dir, ray.dir);
-		float b = dot(dist, ray.dir) * 2.0f;
+		vec3 dist = origin - center;
+		float a = dot(dir, dir);
+		float b = dot(dist, dir) * 2.0f;
 		float c = dot(dist, dist) - radius * radius;
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0) return hit;
@@ -94,7 +101,7 @@ struct Sphere : public Intersectable {
 		float t2 = (-b - sqrt_discr) / 2.0f / a;
 		if (t1 <= 0) return hit;
 		hit.t = (t2 > 0) ? t2 : t1;
-		hit.position = ray.start + ray.dir * hit.t;
+		hit.position = origin + dir * hit.t;
 		hit.normal = (hit.position - center) * (1.0f / radius);
 		hit.material = material;
 		return hit;
@@ -170,14 +177,16 @@ struct Cylinder : public Intersectable {
 	float zmin, zmax;
 	float height;
 	vec3 translation;
+	vec3 rot;
 
-	Cylinder(mat4 _Q, float _zmin, float _zmax, vec3 _translation, float _height, Material* _material) {
+	Cylinder(mat4 _Q, float _zmin, float _zmax, vec3 _translation, float _height, Material* _material, vec3 _rot) {
 		Q = _Q;
 		zmin = _zmin;
 		zmax = _zmax;
 		translation = _translation;
 		material = _material;
 		height = _height;
+		rot = _rot;
 	}
 	//quadratic surface gradient
 	vec3 gradf(vec3 r) {
@@ -186,9 +195,14 @@ struct Cylinder : public Intersectable {
 	}
 
 	Hit intersect(const Ray& ray) {
+
+		vec4 q = quat(normalize(rot), cycle);
+		vec3 origin = quatRot(q, ray.start);
+		vec3 dir = quatRot(q, ray.dir);
+
 		Hit hit;
-		vec3 start = ray.start - translation;
-		vec4 S(start.x, start.y, start.z, 1), D(ray.dir.x, ray.dir.y, ray.dir.z, 0);
+		vec3 start = origin - translation;
+		vec4 S(start.x, start.y, start.z, 1), D(dir.x, dir.y, dir.z, 0);
 		float a = dot(D * Q, D), b = dot(S * Q, D) * 2, c = dot(S * Q, S);
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0)
@@ -196,18 +210,18 @@ struct Cylinder : public Intersectable {
 		float sqrt_discr = sqrtf(discr);
 
 		float t1 = (-b + sqrt_discr) / 2.0f / a;
-		vec3 p1 = ray.start + ray.dir * t1;
+		vec3 p1 = origin + dir * t1;
 		if (p1.z < zmin || p1.z > zmax)
 			t1 = -1;
 
 		float t2 = (-b - sqrt_discr) / 2.0f / a;
-		vec3 p2 = ray.start + ray.dir * t2;
+		vec3 p2 = origin + dir * t2;
 		if (p2.z < zmin || p2.z > zmax)
 			t2 = -1;
 
 		//cylinder cut
-		vec3 dist = ray.start - translation;
-		vec3 point = dist + ray.dir * t1;
+		vec3 dist = origin - translation;
+		vec3 point = dist + dir * t1;
 		if (point.y < 0 || point.y > height) {
 			return hit;
 		}
@@ -222,7 +236,7 @@ struct Cylinder : public Intersectable {
 			hit.t = t2;
 		else
 			hit.t = t1;
-		hit.position = start + ray.dir * hit.t;
+		hit.position = start + dir * hit.t;
 		hit.normal = normalize(gradf(hit.position));
 		hit.position = hit.position + translation;
 		hit.material = material;
@@ -240,12 +254,14 @@ struct Paraboloid : public Intersectable {
 	);
 	float zmin, zmax;
 	vec3 translation;
+	vec3 rot;
 
-	Paraboloid(float _zmin, float _zmax, vec3 _translation, Material* _material) {
+	Paraboloid(float _zmin, float _zmax, vec3 _translation, Material* _material, vec3 _rot) {
 		zmin = _zmin;
 		zmax = _zmax;
 		translation = _translation;
 		material = _material;
+		rot = _rot;
 	}
 	//quadratic surface gradient
 	vec3 gradf(vec3 r) {
@@ -255,7 +271,7 @@ struct Paraboloid : public Intersectable {
 
 	Hit intersect(const Ray& ray) {
 
-		vec4 q = quat(normalize(vec3(0, 3, 0)), cycle);
+		vec4 q = quat(normalize(rot), cycle);
 		vec3 origin = quatRot(q, ray.start);
 		vec3 dir = quatRot(q, ray.dir);
 
@@ -347,7 +363,6 @@ public:
 		La = vec3(0.01f, 0.01f, 0.01f);
 
 		lights.push_back(new Light(vec3 (1, 1, 1), vec3(2, 2, 2)));
-		//lights.push_back(new Light(vec3(1, 1, -1), vec3(1, 1, 1)));
 
 		Material * material = new Material(vec3(0.39f, 0.55f, 0.71f), vec3(2, 2, 2), 50);
 		Material* planeMat = new Material(vec3(1.0f, 0.52f, 0.42f), vec3(2, 2, 2), 50);
@@ -357,19 +372,19 @@ public:
 		//talp teteje
 		objects.push_back(new CylinderCap(vec3(0.0f, -0.25f, 0.0f), vec3(0, 1, 0), 0.2f, material));
 		//talp
-		objects.push_back(new Cylinder(ScaleMatrix(vec3(-25.0f, 0.0f, -25.0f)), - 1.0f, 1.0f, vec3(0.0f, -0.3f, 0.0f), 0.05f, material));
+		objects.push_back(new Cylinder(ScaleMatrix(vec3(-25.0f, 0.0f, -25.0f)), - 1.0f, 1.0f, vec3(0.0f, -0.3f, 0.0f), 0.05f, material, vec3(0, 1, 0)));
 		// csukló 1
-		objects.push_back(new Sphere(vec3(0.0f, -0.25f, 0.0f), 0.03f, material));
+		objects.push_back(new Sphere(vec3(0.0f, -0.25f, 0.0f), 0.03f, material, vec3(0, 1, 0)));
 		//rudi 1
-		objects.push_back(new Cylinder(ScaleMatrix(vec3(-2500.0f, 0.0f, -2500.0f)), - 1.0f, 1.0f, vec3(0.0f, -0.3f, 0.0f), 0.3f, material));
+		objects.push_back(new Cylinder(ScaleMatrix(vec3(-2500.0f, 0.0f, -2500.0f)), - 1.0f, 1.0f, vec3(0.0f, -0.3f, 0.0f), 0.3f, material, vec3(0, 1, 0)));
 		//csukló 2
-		objects.push_back(new Sphere(vec3(0.0f, 0.0f, 0.0f), 0.03f, material));
+		objects.push_back(new Sphere(vec3(0.0f, 0.0f, 0.0f), 0.03f, material, vec3(0, 0, 1)));
 		//rudi 2
-		objects.push_back(new Cylinder(ScaleMatrix(vec3(-2500.0f, 0.0f, -2500.0f)), - 1.0f, 1.0f, vec3(0.0f, 0.0f, 0.0f), 0.3f, material));
+		objects.push_back(new Cylinder(ScaleMatrix(vec3(-2500.0f, 0.0f, -2500.0f)), - 1.0f, 1.0f, vec3(0.0f, 0.0f, 0.0f), 0.3f, material, vec3(0, 0, 1)));
 		//csukló 3
-		objects.push_back(new Sphere(vec3(0.0f, 0.3f, 0.0f), 0.03f, material));
+		objects.push_back(new Sphere(vec3(0.0f, 0.3f, 0.0f), 0.03f, material, vec3(0, 1, 1)));
 		//búra
-		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, -0.02f), material));
+		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, -0.02f), material, vec3(0, 1, 1)));
 
 	}
 
