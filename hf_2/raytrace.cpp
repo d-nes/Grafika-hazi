@@ -254,9 +254,14 @@ struct Paraboloid : public Intersectable {
 	}
 
 	Hit intersect(const Ray& ray) {
+
+		vec4 q = quat(normalize(vec3(0, 3, 0)), cycle);
+		vec3 origin = quatRot(q, ray.start);
+		vec3 dir = quatRot(q, ray.dir);
+
 		Hit hit;
-		vec3 start = ray.start - translation;
-		vec4 S(start.x, start.y, start.z, 1), D(ray.dir.x, ray.dir.y, ray.dir.z, 0);
+		vec3 start = origin - translation;
+		vec4 S(start.x, start.y, start.z, 1), D(dir.x, dir.y, dir.z, 0);
 		float a = dot(D * Q, D), b = dot(S * Q, D) * 2, c = dot(S * Q, S);
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0)
@@ -264,12 +269,12 @@ struct Paraboloid : public Intersectable {
 		float sqrt_discr = sqrtf(discr);
 
 		float t1 = (-b + sqrt_discr) / 2.0f / a;
-		vec3 p1 = ray.start + ray.dir * t1;
+		vec3 p1 = origin + dir * t1;
 		if (p1.z < zmin || p1.z > zmax)
 			t1 = -1;
 
 		float t2 = (-b - sqrt_discr) / 2.0f / a;
-		vec3 p2 = ray.start + ray.dir * t2;
+		vec3 p2 = origin + dir * t2;
 		if (p2.z < zmin || p2.z > zmax)
 			t2 = -1;
 
@@ -283,7 +288,7 @@ struct Paraboloid : public Intersectable {
 			hit.t = t2;
 		else
 			hit.t = t1;
-		hit.position = start + ray.dir * hit.t;
+		hit.position = start + dir * hit.t;
 		hit.normal = normalize(gradf(hit.position));
 		hit.position = hit.position + translation;
 		hit.material = material;
@@ -341,8 +346,8 @@ public:
 
 		La = vec3(0.01f, 0.01f, 0.01f);
 
-		lights.push_back(new Light(vec3 (1, 1, 1), vec3(1, 1, 1)));
-		lights.push_back(new Light(vec3(1, 1, -1), vec3(1, 1, 1)));
+		lights.push_back(new Light(vec3 (1, 1, 1), vec3(2, 2, 2)));
+		//lights.push_back(new Light(vec3(1, 1, -1), vec3(1, 1, 1)));
 
 		Material * material = new Material(vec3(0.39f, 0.55f, 0.71f), vec3(2, 2, 2), 50);
 		Material* planeMat = new Material(vec3(1.0f, 0.52f, 0.42f), vec3(2, 2, 2), 50);
