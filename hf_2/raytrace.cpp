@@ -19,6 +19,7 @@
 #include "framework.h"
 
 const float epsilon = 0.0001f;
+int cycle = 0;
 
 struct Material {
 	vec3 ka, kd, ks;
@@ -44,6 +45,31 @@ protected:
 public:
 	virtual Hit intersect(const Ray& ray) = 0;
 };
+
+
+
+//Inspiried by: Grafika házi konzi @ Teams
+vec4 quat(vec3 axis, float angle) {
+	vec3 ret(axis * sin(angle / 2));
+	return vec4(ret.x, ret.y, ret.z, cos(angle / 2));
+}
+vec4 quatInv(vec4 quat) {
+	return vec4(-quat.x, -quat.y, -quat.z, quat.w);
+}
+vec4 quatMul(vec4 q1, vec4 q2) {
+	vec3 ret = vec3 (q1.w * q2.x, q1.w * q2.y, q1.w * q2.z) + vec3(q2.w * q1.x, q2.w * q1.y, q2.w * q1.z) + cross(vec3(q1.x, q1.y, q1.z), vec3(q2.x, q2.y, q2.z));
+	return vec4(
+		ret.x, ret.y, ret.z,
+		q1.w * q2.w - dot(vec3(q1.x, q1.y, q1.z), vec3(q2.x, q2.y, q2.z))
+	);
+}
+vec3 quatRot(vec4 q, vec3 p) {
+	vec4 qInv = quatInv(q);
+	vec4 ret = quatMul(quatMul(q, vec4(p.x, p.y, p.z, 0)), qInv);
+	return vec3(ret.x, ret.y, ret.z);
+}
+
+
 
 struct Sphere : public Intersectable {
 	vec3 center;
@@ -74,7 +100,6 @@ struct Sphere : public Intersectable {
 		return hit;
 	}
 };
-
 
 //Source: pathtracingfinal.cpp
 //from: online.vik.bme.hu
@@ -180,7 +205,7 @@ struct Cylinder : public Intersectable {
 		if (p2.z < zmin || p2.z > zmax)
 			t2 = -1;
 
-		//henger elvágása
+		//cylinder cut
 		vec3 dist = ray.start - translation;
 		vec3 point = dist + ray.dir * t1;
 		if (point.y < 0 || point.y > height) {
@@ -210,8 +235,8 @@ struct Cylinder : public Intersectable {
 struct Paraboloid : public Intersectable {
 	mat4 Q = mat4(	10, 0, 0, 0,
 					0, 10, 0, 0,
-					0, 0, 0, -1,
-					0, 0, -1, 0
+					0, 0, 0, 1,
+					0, 0, 1, 0
 	);
 	float zmin, zmax;
 	vec3 translation;
@@ -315,8 +340,9 @@ public:
 		camera.set(eye, lookat, vup, fov);
 
 		La = vec3(0.01f, 0.01f, 0.01f);
-		vec3 lightDirection(1, 1, 1), Le(2, 2, 2);
-		lights.push_back(new Light(lightDirection, Le));
+
+		lights.push_back(new Light(vec3 (1, 1, 1), vec3(1, 1, 1)));
+		lights.push_back(new Light(vec3(1, 1, -1), vec3(1, 1, 1)));
 
 		Material * material = new Material(vec3(0.39f, 0.55f, 0.71f), vec3(2, 2, 2), 50);
 		Material* planeMat = new Material(vec3(1.0f, 0.52f, 0.42f), vec3(2, 2, 2), 50);
@@ -338,7 +364,7 @@ public:
 		//csukló 3
 		objects.push_back(new Sphere(vec3(0.0f, 0.3f, 0.0f), 0.03f, material));
 		//búra
-		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, 0.02f), material));
+		objects.push_back(new Paraboloid(-0.2f, 0.1f, vec3(0.0f, 0.3f, -0.02f), material));
 
 	}
 
@@ -385,7 +411,7 @@ public:
 	}
 
 	void Animate(float dt) {
-		camera.Animate(dt);
+		//camera.Animate(dt);
 	}
 };
 
@@ -493,6 +519,7 @@ void onMouseMotion(int pX, int pY) {
 
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
+	cycle++;
 	scene.Animate(0.5f);
 	glutPostRedisplay();
 }
