@@ -473,16 +473,28 @@ public:
 		X = Cos(U); Y = Sin(U); Z = V;
 	}
 };
+//---------------------------
+class Paraboloid : public ParamSurface {
+	//---------------------------
+public:
+	Paraboloid() { create(); }
+	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
+		U = U * 2.0f * M_PI;
+		X = Cos(U);
+		Y = Sin(U);
+		Z = V;
+	}
+};
 
 //---------------------------
 class Plane : public ParamSurface {
-	//---------------------------
+//---------------------------
 public:
 	Plane() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Z, Dnum2& Y) {
+	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
 		X = U;
-		Z = U;
-		Y = V;
+		Y = U;
+		Z = V;
 	}
 };
 
@@ -538,7 +550,7 @@ public:
 		Shader * nprShader = new NPRShader();
 
 		// Materials
-		Material * material0 = new Material;
+		Material* material0 = new Material;
 		material0->kd = vec3(0.6f, 0.4f, 0.2f);
 		material0->ks = vec3(4, 4, 4);
 		material0->ka = vec3(0.1f, 0.1f, 0.1f);
@@ -551,11 +563,12 @@ public:
 		Geometry* cylinder = new Cylinder();
 		Geometry* sphere = new Sphere();
 		Geometry* plane = new Plane();
+		Geometry* paraboloid = new Paraboloid();
 
 		// Create objects by setting up their vertex data on the GPU
 		Object* felulet = new Object(gouraudShader, material0, texture15x20, plane);
 		felulet->translation = vec3(0.0f, -4.2f, 0.0f);
-		felulet->scale = vec3(100.0f, 1.0f, 100.0f);
+		felulet->scale = vec3(10.0f, 0, 10.0f);
 		felulet->rotationAxis = vec3(0, 1, 0);
 		objects.push_back(felulet);
 
@@ -565,13 +578,11 @@ public:
 		talpacska->rotationAxis = vec3(0, 1, 0);
 		objects.push_back(talpacska);
 
-		/*
-		Object* talpacskakupakja = new Object(gouraudShader, material0, texture15x20, plane);
+		Object* talpacskakupakja = new Object(gouraudShader, material0, texture15x20, sphere);
 		talpacskakupakja->translation = vec3(0, -3.8f, 0);
-		talpacskakupakja->scale = vec3(2.0f, 1.0f, 2.0f);
+		talpacskakupakja->scale = vec3(2.0f, 0.0f, 2.0f);
 		talpacskakupakja->rotationAxis = vec3(0, 1, 0);
 		objects.push_back(talpacskakupakja);
-		*/
 
 		Object* golyo1 = new Object(gouraudShader, material0, texture15x20, sphere);
 		golyo1->translation = vec3(0, -3.8f, 0);
@@ -603,6 +614,11 @@ public:
 		golyo3->rotationAxis = vec3(0, 1, 0);
 		objects.push_back(golyo3);
 
+		Object* bura = new Object(gouraudShader, material0, texture15x20, paraboloid);
+		bura->translation = vec3(0, 4.0f, 0);
+		bura->scale = vec3(1, 1, 1);
+		bura->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(bura);
 
 		// Camera
 		camera.wEye = vec3(0, 0, 10);
@@ -613,15 +629,15 @@ public:
 		lights.resize(3);
 		lights[0].wLightPos = vec4(5, 5, 4, 0);	// ideal point -> directional light source
 		lights[0].La = vec3(0.1f, 0.1f, 1);
-		lights[0].Le = vec3(3, 0, 0);
+		lights[0].Le = vec3(3, 3, 3);
 
 		lights[1].wLightPos = vec4(5, 10, 20, 0);	// ideal point -> directional light source
 		lights[1].La = vec3(0.2f, 0.2f, 0.2f);
-		lights[1].Le = vec3(0, 3, 0);
+		lights[1].Le = vec3(3, 3, 3);
 
 		lights[2].wLightPos = vec4(-5, 5, 5, 0);	// ideal point -> directional light source
 		lights[2].La = vec3(0.1f, 0.1f, 0.1f);
-		lights[2].Le = vec3(0, 0, 3);
+		lights[2].Le = vec3(3, 3, 3);
 	}
 
 	void Render() {
