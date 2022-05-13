@@ -1,11 +1,20 @@
 //=============================================================================================
-// Computer Graphics Sample Program: 3D engine-let
-// Shader: Gouraud, Phong, NPR
-// Material: diffuse + Phong-Blinn
-// Texture: CPU-procedural
-// Geometry: sphere, tractricoid, torus, mobius, klein-bottle, boy, dini
-// Camera: perspective
-// Light: point or directional sources
+// A kód alapja: Computer Graphics Sample Program: 3D engine-let
+//=============================================================================================
+// NYILATKOZAT
+// ---------------------------------------------------------------------------------------------
+// Nev    : Urban Denes Jakab
+// Neptun : TOPKQH
+// ---------------------------------------------------------------------------------------------
+// ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy
+// mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem.
+// A forrasmegjeloles kotelme vonatkozik az eloadas foliakat es a targy oktatoi, illetve a
+// grafhazi doktor tanacsait kiveve barmilyen csatornan (szoban, irasban, Interneten, stb.) erkezo minden egyeb
+// informaciora (keplet, program, algoritmus, stb.). Kijelentem, hogy a forrasmegjelolessel atvett reszeket is ertem,
+// azok helyessegere matematikai bizonyitast tudok adni. Tisztaban vagyok azzal, hogy az atvett reszek nem szamitanak
+// a sajat kontribucioba, igy a feladat elfogadasarol a tobbi resz mennyisege es minosege alapjan szuletik dontes.
+// Tudomasul veszem, hogy a forrasmegjeloles kotelmenek megsertese eseten a hazifeladatra adhato pontokat
+// negativ elojellel szamoljak el es ezzel parhuzamosan eljaras is indul velem szemben.
 //=============================================================================================
 #include "framework.h"
 
@@ -455,100 +464,25 @@ public:
 };
 
 //---------------------------
-class Tractricoid : public ParamSurface {
-//---------------------------
-public:
-	Tractricoid() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
-		const float height = 3.0f;
-		U = U * height, V = V * 2 * M_PI;
-		X = Cos(V) / Cosh(U); Y = Sin(V) / Cosh(U); Z = U - Tanh(U);
-	}
-};
-
-//---------------------------
 class Cylinder : public ParamSurface {
 //---------------------------
 public:
 	Cylinder() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
+	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Z, Dnum2& Y) {
 		U = U * 2.0f * M_PI, V = V * 2 - 1.0f;
 		X = Cos(U); Y = Sin(U); Z = V;
 	}
 };
 
 //---------------------------
-class Torus : public ParamSurface {
-//---------------------------
+class Plane : public ParamSurface {
+	//---------------------------
 public:
-	Torus() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
-		const float R = 1, r = 0.5f;
-		U = U * 2.0f * M_PI, V = V * 2.0f * M_PI;
-		Dnum2 D = Cos(U) * r + R;
-		X = D * Cos(V); Y = D * Sin(V); Z = Sin(U) * r;
-	}
-};
-
-//---------------------------
-class Mobius : public ParamSurface {
-//---------------------------
-public:
-	Mobius() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
-		const float R = 1, width = 0.5f;
-		U = U * M_PI, V = (V - 0.5f) * width;
-		X = (Cos(U) * V + R) * Cos(U * 2);
-		Y = (Cos(U) * V + R) * Sin(U * 2);
-		Z = Sin(U) * V;
-	}
-};
-
-//---------------------------
-class Klein : public ParamSurface {
-//---------------------------
-	const float size = 1.5f;
-public:
-	Klein() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
-		U = U * M_PI * 2, V = V * M_PI * 2;
-		Dnum2 a = Cos(U) * (Sin(U) + 1) * 0.3f;
-		Dnum2 b = Sin(U) * 0.8f;
-		Dnum2 c = (Cos(U) * (-0.1f) + 0.2f);
-		X = a + c * ((U.f > M_PI) ? Cos(V + M_PI) : Cos(U) * Cos(V));
-		Y = b + ((U.f > M_PI) ? 0 : c * Sin(U) * Cos(V));
-		Z = c * Sin(V);
-	}
-};
-
-//---------------------------
-class Boy : public ParamSurface {
-//---------------------------
-public:
-	Boy() { create(); }
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
-		U = (U - 0.5f) * M_PI, V = V * M_PI;
-		float r2 = sqrt(2.0f);
-		Dnum2 denom = (Sin(U * 3)*Sin(V * 2)*(-3 / r2) + 3) * 1.2f;
-		Dnum2 CosV2 = Cos(V) * Cos(V);
-		X = (Cos(U * 2) * CosV2 * r2 + Cos(U) * Sin(V * 2)) / denom;
-		Y = (Sin(U * 2) * CosV2 * r2 - Sin(U) * Sin(V * 2)) / denom;
-		Z = (CosV2 * 3) / denom;
-	}
-};
-
-//---------------------------
-class Dini : public ParamSurface {
-//---------------------------
-	Dnum2 a = 1.0f, b = 0.15f;
-public:
-	Dini() { create(); }
-
-	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Y, Dnum2& Z) {
-		U = U * 4 * M_PI, V = V * (1 - 0.1f) + 0.1f;
-		X = a * Cos(U) * Sin(V);
-		Y = a * Sin(U) * Sin(V);
-		Z = a * (Cos(V) + Log(Tan(V / 2))) + b * U + 3;
+	Plane() { create(); }
+	void eval(Dnum2& U, Dnum2& V, Dnum2& X, Dnum2& Z, Dnum2& Y) {
+		X = U;
+		Z = U;
+		Y = V;
 	}
 };
 
@@ -610,77 +544,68 @@ public:
 		material0->ka = vec3(0.1f, 0.1f, 0.1f);
 		material0->shininess = 100;
 
-		Material * material1 = new Material;
-		material1->kd = vec3(0.8f, 0.6f, 0.4f);
-		material1->ks = vec3(0.3f, 0.3f, 0.3f);
-		material1->ka = vec3(0.2f, 0.2f, 0.2f);
-		material1->shininess = 30;
-
 		// Textures
-		Texture * texture4x8 = new CheckerBoardTexture(4, 8);
 		Texture * texture15x20 = new CheckerBoardTexture(15, 20);
 
 		// Geometries
-		Geometry * sphere = new Sphere();
-		Geometry * tractricoid = new Tractricoid();
-		Geometry * torus = new Torus();
-		Geometry * mobius = new Mobius();
-		Geometry * klein = new Klein();
-		Geometry * boy = new Boy();
-		Geometry * dini = new Dini();
+		Geometry* cylinder = new Cylinder();
+		Geometry* sphere = new Sphere();
+		Geometry* plane = new Plane();
 
 		// Create objects by setting up their vertex data on the GPU
-		Object * sphereObject1 = new Object(phongShader, material0, texture15x20, sphere);
-		sphereObject1->translation = vec3(-9, 3, 0);
-		sphereObject1->scale = vec3(0.5f, 1.2f, 0.5f);
-		objects.push_back(sphereObject1);
+		Object* felulet = new Object(gouraudShader, material0, texture15x20, plane);
+		felulet->translation = vec3(0.0f, -4.2f, 0.0f);
+		felulet->scale = vec3(100.0f, 1.0f, 100.0f);
+		felulet->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(felulet);
 
-		// Create objects by setting up their vertex data on the GPU
-		Object * tractiObject1 = new Object(phongShader, material0, texture15x20, tractricoid);
-		tractiObject1->translation = vec3(-6, 3, 0);
-		tractiObject1->rotationAxis = vec3(1, 0, 0);
-		objects.push_back(tractiObject1);
+		Object* talpacska = new Object(gouraudShader, material0, texture15x20, cylinder);
+		talpacska->translation = vec3(0, -4.0f, 0);
+		talpacska->scale = vec3(2.0f, 0.2f, 2.0f);
+		talpacska->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(talpacska);
 
-		Object * torusObject1 = new Object(phongShader, material0, texture4x8, torus);
-		torusObject1->translation = vec3(-3, 3, 0);
-		torusObject1->scale = vec3(0.7f, 0.7f, 0.7f);
-		torusObject1->rotationAxis = vec3(1, 0, 0);
-		objects.push_back(torusObject1);
+		/*
+		Object* talpacskakupakja = new Object(gouraudShader, material0, texture15x20, plane);
+		talpacskakupakja->translation = vec3(0, -3.8f, 0);
+		talpacskakupakja->scale = vec3(2.0f, 1.0f, 2.0f);
+		talpacskakupakja->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(talpacskakupakja);
+		*/
 
-		Object * mobiusObject1 = new Object(phongShader, material0, texture4x8, mobius);
-		mobiusObject1->translation = vec3(0, 3, 0);
-		mobiusObject1->scale = vec3(0.7f, 0.7f, 0.7f);
-		mobiusObject1->rotationAxis = vec3(1, 0, 0);
-		objects.push_back(mobiusObject1);
+		Object* golyo1 = new Object(gouraudShader, material0, texture15x20, sphere);
+		golyo1->translation = vec3(0, -3.8f, 0);
+		golyo1->scale = vec3(0.3f, 0.3f, 0.3f);
+		golyo1->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(golyo1);
+		
+		Object* rudi1 = new Object(gouraudShader, material0, texture15x20, cylinder);
+		rudi1->translation = vec3(0, -2.0f, 0);
+		rudi1->scale = vec3(0.2f, 2.0f, 0.2f);
+		rudi1->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(rudi1);
 
-		Object * kleinObject1 = new Object(phongShader, material1, texture4x8, klein);
-		kleinObject1->translation = vec3(3, 3, 0);
-		objects.push_back(kleinObject1);
+		Object* golyo2 = new Object(gouraudShader, material0, texture15x20, sphere);
+		golyo2->translation = vec3(0, 0.0f, 0);
+		golyo2->scale = vec3(0.3f, 0.3f, 0.3f);
+		golyo2->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(golyo2);
 
-		Object * boyObject1 = new Object(phongShader, material1, texture15x20, boy);
-		boyObject1->translation = vec3(6, 3, 0);
-		objects.push_back(boyObject1);
+		Object* rudi2 = new Object(gouraudShader, material0, texture15x20, cylinder);
+		rudi2->translation = vec3(0, 2.0f, 0);
+		rudi2->scale = vec3(0.2f, 2.0f, 0.2f);
+		rudi2->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(rudi2);
 
-		Object * diniObject1 = new Object(phongShader, material1, texture15x20, dini);
-		diniObject1->translation = vec3(9, 3, 0);
-		diniObject1->scale = vec3(0.7f, 0.7f, 0.7f);
-		diniObject1->rotationAxis = vec3(1, 0, 0);
-		objects.push_back(diniObject1);
+		Object* golyo3 = new Object(gouraudShader, material0, texture15x20, sphere);
+		golyo3->translation = vec3(0, 4.0f, 0);
+		golyo3->scale = vec3(0.3f, 0.3f, 0.3f);
+		golyo3->rotationAxis = vec3(0, 1, 0);
+		objects.push_back(golyo3);
 
-		int nObjects = objects.size();
-		for (int i = 0; i < nObjects; i++) {
-			Object * object = new Object(*objects[i]);
-			object->translation.y -= 3;
-			object->shader = gouraudShader;
-			objects.push_back(object);
-			object = new Object(*objects[i]);
-			object->translation.y -= 6;
-			object->shader = nprShader;
-			objects.push_back(object);
-		}
 
 		// Camera
-		camera.wEye = vec3(0, 0, 8);
+		camera.wEye = vec3(0, 0, 10);
 		camera.wLookat = vec3(0, 0, 0);
 		camera.wVup = vec3(0, 1, 0);
 
@@ -750,7 +675,7 @@ void onIdle() {
 	const float dt = 0.1f; // dt is ”infinitesimal”
 	float tstart = tend;
 	tend = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-
+	
 	for (float t = tstart; t < tend; t += dt) {
 		float Dt = fmin(dt, tend - t);
 		scene.Animate(t, t + Dt);
