@@ -9,4 +9,4 @@ Luxo Junior-ból Luxo Grandpa (LG) lett,ezért új sugárkövető programot szen
 #### whyy
 ## Harmadik házi feladat: Luxo Grandpa
 Oldja meg a második házi feladatot inkrementális képszintézissel. A lámpa csuklóiban az elfordulás folyamatos, a kamera kering a színtér körül és a lámpát mindig látja. A felületek rücskös típusúak. Árnyék megvalósítása nem szükséges.
-###
+### 2/4 pont
